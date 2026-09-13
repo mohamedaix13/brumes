@@ -10,14 +10,13 @@ android {
         applicationId = "com.mumu.brumes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.5.2"
+        versionCode = 8
+        versionName = "0.6.0"
     }
     buildTypes {
         getByName("debug") {
-            // Unique test package avoids signature conflicts with older GitHub Actions debug APKs.
-            applicationIdSuffix = ".s25fix052"
-            versionNameSuffix = "-s25fix"
+            applicationIdSuffix = ".s25v060"
+            versionNameSuffix = "-s25test"
         }
     }
     compileOptions {
