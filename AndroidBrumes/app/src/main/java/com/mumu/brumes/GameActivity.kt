@@ -187,6 +187,23 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         1f,0f,-1f, -1f,0f,-1f, 0f,2f,0f,
         -1f,0f,-1f, -1f,0f,1f, 0f,2f,0f
     )
+    private val orb = run {
+        val vertices=ArrayList<Float>()
+        fun point(lat:Float,lon:Float) { vertices.add(cos(lat)*cos(lon));vertices.add(sin(lat));vertices.add(cos(lat)*sin(lon)) }
+        for(y in 0 until 8) for(x in 0 until 12) {
+            val a=-PI.toFloat()/2+y*PI.toFloat()/8;val b=a+PI.toFloat()/8
+            val c=x*PI.toFloat()/6;val d=c+PI.toFloat()/6
+            point(a,c);point(b,c);point(b,d);point(a,c);point(b,d);point(a,d)
+        }
+        vertices.toFloatArray()
+    }
+    private val ob=java.nio.ByteBuffer.allocateDirect(orb.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(orb);position(0) }
+    private val on=java.nio.ByteBuffer.allocateDirect(orb.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(orb);position(0) }
+    private val cloth=floatArrayOf(.15f,.12f,.29f,1f)
+    private val trim=floatArrayOf(.64f,.47f,.19f,1f)
+    private val skin=floatArrayOf(.72f,.52f,.36f,1f)
+    private val shadow=floatArrayOf(.16f,.09f,.18f,1f)
+    private val magic=floatArrayOf(.24f,.72f,1f,1f)
     private val fb = java.nio.ByteBuffer.allocateDirect(foliage.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(foliage); position(0) }
     private val cn = normals(cube); private val fn = normals(foliage)
     private val gn = java.nio.ByteBuffer.allocateDirect(ground.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply {
@@ -277,8 +294,30 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
             draw(foliage,fb,x,-.2f,z,12f+(i%3)*4f,8f+(i%5)*2.2f,14f,stone)
         }
         for(i in 0 until 3) { val a=i*2.09f; draw(cube,cb,sin(a)*53,2.4f,cos(a)*53,2.7f,2.4f,2.7f,if(effect>0) floatArrayOf(1f,.8f,.2f,1f) else floatArrayOf(.1f,.8f,1f,1f)) }
-        draw(cube,cb,playerX,1f,playerZ,.55f,1f,.55f,floatArrayOf(.27f,.18f,.9f,1f)); draw(cube,cb,playerX,2.15f,playerZ,.25f,.25f,.25f,floatArrayOf(.96f,.72f,.48f,1f))
-        enemies.forEach { e -> if(e[2]>0) draw(cube,cb,e[0],.85f,e[1],.55f,.85f,.55f,if(e[3]>0f) floatArrayOf(.1f,.8f,1f,1f) else floatArrayOf(.65f,.08f,.38f,1f)) }
+        val stride=sin(elapsed*9f)*min(1f,hypot(moveX,moveZ))*.25f
+        // Layered robe, articulated limbs and an emissive staff replace the block avatar.
+        draw(orb,ob,playerX,.85f,playerZ,.58f,.88f,.44f,cloth)
+        draw(orb,ob,playerX,1.55f,playerZ,.40f,.54f,.30f,cloth)
+        draw(orb,ob,playerX,2.16f,playerZ,.31f,.35f,.31f,skin)
+        draw(orb,ob,playerX,2.31f,playerZ+.10f,.35f,.28f,.30f,cloth)
+        draw(orb,ob,playerX-.23f,.23f,playerZ+stride,.19f,.24f,.32f,bark)
+        draw(orb,ob,playerX+.23f,.23f,playerZ-stride,.19f,.24f,.32f,bark)
+        draw(orb,ob,playerX-.49f,1.35f+stride*.3f,playerZ,.18f,.44f,.20f,cloth)
+        draw(orb,ob,playerX+.49f,1.43f,playerZ,.18f,.40f,.20f,cloth)
+        draw(orb,ob,playerX,1.05f,playerZ,.48f,.065f,.34f,trim)
+        draw(cube,cb,playerX+.72f,1.25f,playerZ,.055f,1.22f,.055f,bark)
+        draw(orb,ob,playerX+.72f,2.57f,playerZ,.15f,.24f,.15f,magic,1f)
+        enemies.forEachIndexed { i,e -> if(e[2]>0) {
+            val frozen=e[3]>0f
+            val bob=if(frozen)0f else sin(elapsed*3f+i)*.12f
+            val material=if(frozen)magic else shadow
+            draw(orb,ob,e[0],.95f+bob,e[1],.48f,.82f,.38f,material)
+            draw(orb,ob,e[0],1.85f+bob,e[1],.30f,.36f,.29f,material)
+            draw(orb,ob,e[0]-.51f,1.04f+bob,e[1],.16f,.53f,.18f,material)
+            draw(orb,ob,e[0]+.51f,1.04f+bob,e[1],.16f,.53f,.18f,material)
+            draw(orb,ob,e[0]-.11f,1.91f+bob,e[1]+.27f,.055f,.04f,.03f,magic,1f)
+            draw(orb,ob,e[0]+.11f,1.91f+bob,e[1]+.27f,.055f,.04f,.03f,magic,1f)
+        } }
         if(effect>0) {
             val radius=.8f+(1f-effect)*7f
             val color=when(effectType){0->floatArrayOf(1f,.35f,.05f,1f);1->floatArrayOf(.2f,.85f,1f,1f);else->floatArrayOf(.75f,.3f,1f,1f)}
@@ -316,6 +355,6 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         } }
         publish()
     }
-    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y,z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===foliage)fn else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
+    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y,z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
 }
 
