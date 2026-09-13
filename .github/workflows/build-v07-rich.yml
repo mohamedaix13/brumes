@@ -13,6 +13,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -53,13 +54,14 @@ jobs:
           PY
 
       - name: Compile APK
-        working-directory: AndroidBrumes
         run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
+          curl --fail --silent --show-error --location https://services.gradle.org/distributions/gradle-8.10.2-bin.zip --output /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          /tmp/gradle-8.10.2/bin/gradle -p AndroidBrumes :app:assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
           name: Brumes-0.7-S25-textured
           path: AndroidBrumes/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
           if-no-files-found: error
