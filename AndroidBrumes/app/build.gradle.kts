@@ -10,8 +10,15 @@ android {
         applicationId = "com.mumu.brumes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.5.1"
+    }
+    buildTypes {
+        getByName("debug") {
+            // Installable next to older Brumes test APKs, even if their debug signing key differs.
+            applicationIdSuffix = ".s25test"
+            versionNameSuffix = "-s25test"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
