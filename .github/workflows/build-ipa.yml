@@ -1,0 +1,38 @@
+name: Compiler Brumes pour iPhone
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    name: Construire l'IPA non signé
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Télécharger le projet
+        uses: actions/checkout@v4
+
+      - name: Construire l'application
+        run: |
+          xcodebuild -project Brumes.xcodeproj -scheme Brumes \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+
+      - name: Créer l'IPA non signé
+        run: |
+          mkdir -p package/Payload
+          cp -R build/Build/Products/Release-iphoneos/Brumes.app package/Payload/
+          cd package
+          /usr/bin/zip -qry ../Brumes-unsigned.ipa Payload
+
+      - name: Garder l'IPA pendant 7 jours
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brumes-unsigned-ipa
+          path: Brumes-unsigned.ipa
+          retention-days: 7
+          if-no-files-found: error
