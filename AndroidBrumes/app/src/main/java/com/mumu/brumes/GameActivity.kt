@@ -16,7 +16,7 @@ import android.widget.TextView
 import kotlin.math.*
 
 internal data class GameStats(val life: Int=100, val mana: Int=100, val kills: Int=0, val wave: Int=1,
-    val remaining: Int=14, val ranks: List<Int> = listOf(1,1,1), val cooldowns: List<Float> = listOf(0f,0f,0f)) {
+    val shrineMask:Int=0, val guidance:String="Explore les trois sanctuaires", val remaining: Int=14, val ranks: List<Int> = listOf(1,1,1), val cooldowns: List<Float> = listOf(0f,0f,0f)) {
     val points: Int get() = (kills/3-ranks.sum()+3).coerceAtLeast(0)
     val level: Int get() = 1+kills/3
 }
@@ -55,7 +55,7 @@ class GameActivity : Activity() {
         spells.forEach { bar.addView(it,LinearLayout.LayoutParams(dp(100),dp(64)).apply { setMargins(dp(8),0,0,0) }) }
         root.addView(bar,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(82),Gravity.BOTTOM or Gravity.END))
         val objective=label("",12f)
-        root.addView(objective,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(42),Gravity.TOP or Gravity.CENTER_HORIZONTAL))
+        root.addView(objective,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(66),Gravity.TOP or Gravity.CENTER_HORIZONTAL))
         val pad=object:View(this) {
             val paint=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
             var dx=0f; var dy=0f
@@ -79,7 +79,7 @@ class GameActivity : Activity() {
         root.addView(pad,FrameLayout.LayoutParams(dp(138),dp(138),Gravity.BOTTOM or Gravity.START).apply { setMargins(dp(16),0,0,dp(12)) })
         game.onStats={ s ->
             hud.text="BRUMES  ·  Mage niveau ${s.level}\nVie ${s.life} / 100    Mana ${s.mana} / 100\n${s.points} point(s) de compétence"
-            objective.text=if(s.remaining==0) "Vague terminée · Ouvre le menu" else "Vague ${s.wave} · ${s.remaining} ombres restantes"
+            objective.text="${s.guidance}\n"+(if(s.remaining==0) "Vague terminée · Ouvre le menu" else "Vague ${s.wave} · ${s.remaining} ombres")
             spells.forEachIndexed { i,b ->
                 val cd=s.cooldowns[i]; val cost=listOf(14,25,38)[i]
                 b.text=if(cd>.05f) "${names[i]}\n${ceil(cd).toInt()} s" else "${names[i]}  ${s.ranks[i]}\n$cost mana"
@@ -123,7 +123,7 @@ class GameActivity : Activity() {
 
 class BrumesView(activity: Activity) : GLSurfaceView(activity) {
     private val prefs=activity.getSharedPreferences("brumes_progress",0)
-    @Volatile internal var stats=GameStats(kills=prefs.getInt("kills",0).coerceAtLeast(0),ranks=(0..2).map { prefs.getInt("rank$it",1).coerceIn(1,5) })
+    @Volatile internal var stats=GameStats(shrineMask=prefs.getInt("shrines",0) and 7,kills=prefs.getInt("kills",0).coerceAtLeast(0),ranks=(0..2).map { prefs.getInt("rank$it",1).coerceIn(1,5) })
         private set
     internal var onStats:((GameStats)->Unit)?=null
     var detailed=prefs.getBoolean("detailed",false)
@@ -138,7 +138,7 @@ class BrumesView(activity: Activity) : GLSurfaceView(activity) {
     fun pauseWorld(value:Boolean) { move(0f,0f);queueEvent { renderer.paused=value } }
     fun nextWave() { queueEvent { renderer.nextWave() } }
     fun upgrade(index:Int, done:()->Unit) { queueEvent { renderer.upgrade(index);post { save();done() } } }
-    fun save() { val s=stats;prefs.edit().putInt("kills",s.kills).apply { s.ranks.forEachIndexed { i,r -> putInt("rank$i",r) } }.apply() }
+    fun save() { val s=stats;prefs.edit().putInt("shrines",s.shrineMask).putInt("kills",s.kills).apply { s.ranks.forEachIndexed { i,r -> putInt("rank$i",r) } }.apply() }
     override fun onPause() { move(0f,0f);super.onPause() }
     private var lookX=0f; private var lookY=0f
     override fun onTouchEvent(e:MotionEvent):Boolean {
@@ -160,6 +160,9 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     private var aNormal = 0; private var uModel = 0; private var uScale = 0; private var uEye = 0
     var paused=true
     private var wave=1
+    private var shrineMask=initial.shrineMask;private var checkpoint=-1
+    private val hitColor=floatArrayOf(1f,.72f,.32f,1f)
+    private val healthColor=floatArrayOf(.32f,.9f,.38f,1f)
     private val ranks=initial.ranks.toIntArray()
     private val cooldowns=FloatArray(3)
     private var uGlow=0;private var uKind=0;private var uTime=0;private var uShadows=0
@@ -173,7 +176,7 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     private val model = FloatArray(16); private val mvp = FloatArray(16)
     private var playerX = 0f; private var playerZ = 0f; private var mana = 100f; private var life = 100f
     private var effect = 0f; private var effectType = 0; private var elapsed = 0f; private var kills = initial.kills
-    private val enemies = Array(14) { i -> floatArrayOf(sin(i * 2.4f) * (17 + i % 4 * 8), cos(i * 2.4f) * (17 + i % 4 * 8), 100f, 0f) }
+    private val enemies = Array(14) { i -> floatArrayOf(sin(i * 2.4f) * (17 + i % 4 * 8), cos(i * 2.4f) * (17 + i % 4 * 8), 100f, 0f, 0f, 0f, 0f) }
     private val cube = floatArrayOf(
         -1f,-1f, 1f, 1f,-1f, 1f, 1f,1f, 1f, -1f,-1f, 1f, 1f,1f, 1f, -1f,1f, 1f,
         1f,-1f,-1f, -1f,-1f,-1f, -1f,1f,-1f, 1f,-1f,-1f, -1f,1f,-1f, 1f,1f,-1f,
@@ -331,8 +334,16 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         val mx=moveX*cos(yaw)+moveZ*sin(yaw);val mz=-moveX*sin(yaw)+moveZ*cos(yaw)
         playerX=(playerX+mx*dt*8).coerceIn(-82f,82f);playerZ=(playerZ+mz*dt*8).coerceIn(-82f,82f)
         trees.forEach { t -> if(hypot(playerX-t[0],playerZ-t[1])<.55f+t[2]*.22f) { playerX=oldX;playerZ=oldZ } }
-        enemies.forEach { e -> if(e[2]>0) { val dx=playerX-e[0]; val dz=playerZ-e[1]; val d=max(.1f,sqrt(dx*dx+dz*dz)); e[3]=max(0f,e[3]-dt); if(d<26 && e[3]<=0f) { e[0]+=dx/d*dt*1.35f; e[1]+=dz/d*dt*1.35f }; if(d<1.7f) life=max(0f,life-dt*5) } }
-        if(life<=0) { playerX=0f;playerZ=0f;life=100f;mana=100f;resetEnemies() }
+        enemies.forEach { e -> e[4]=max(0f,e[4]-dt);e[5]=max(0f,e[5]-dt);e[6]=max(0f,e[6]-dt);if(e[2]>0) { val dx=playerX-e[0]; val dz=playerZ-e[1]; val d=max(.1f,sqrt(dx*dx+dz*dz)); e[3]=max(0f,e[3]-dt); if(d<26 && e[3]<=0f) { e[0]+=dx/d*dt*1.35f; e[1]+=dz/d*dt*1.35f }; if(d<1.7f && e[3]<=0f && e[6]<=0f) { life=max(0f,life-7f);e[6]=1.1f } } }
+        if(life<=0) { playerX=if(checkpoint<0)0f else sin(checkpoint*2.09f)*53+4f;playerZ=if(checkpoint<0)0f else cos(checkpoint*2.09f)*53;life=100f;mana=100f;resetEnemies() }
+        for(i in 0 until 3) {
+            val x=sin(i*2.09f)*53;val z=cos(i*2.09f)*53
+            if(hypot(playerX-x,playerZ-z)<3f) {
+                checkpoint=i
+                if(shrineMask and (1 shl i)==0) { shrineMask=shrineMask or (1 shl i);life=100f;mana=100f }
+                if(enemies.none { it[2]>0 && hypot(it[0]-playerX,it[1]-playerZ)<8f }) { life=min(100f,life+dt*20);mana=min(100f,mana+dt*25) }
+            }
+        }
         if(elapsed>=nextHud) { nextHud=elapsed+.25f;publish() }
         renderScene()
     }
@@ -371,7 +382,8 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
                 draw(cube,cb,x+side*2.1f,.35f,z,.64f,.35f,.67f,stone)
             }
             draw(cube,cb,x,4.2f,z,2.6f,.36f,.52f,stone)
-            draw(orb,ob,x,1.8f+sin(elapsed+i)*.15f,z,.42f,.65f,.42f,magic,1f)
+            draw(orb,ob,x,1.8f+sin(elapsed+i)*.15f,z,.42f,.65f,.42f,if(shrineMask and (1 shl i)!=0)healthColor else magic,1f)
+            if(shrineMask and (1 shl i)==0) draw(cube,cb,x,6f,z,.045f,5f,.045f,magic,1f)
         }
         for(i in 0 until 24) {
             val x=sin(i*2.39f)*((i%6)*9+12);val z=cos(i*1.67f)*((i%5)*12+16)
@@ -391,15 +403,26 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         draw(cube,cb,playerX+.72f,1.25f,playerZ,.055f,1.22f,.055f,bark)
         draw(orb,ob,playerX+.72f,2.57f,playerZ,.15f,.24f,.15f,magic,1f)
         enemies.forEachIndexed { i,e -> if(e[2]>0) {
+            val hp=e[2]/(100f+(wave-1)*15f)
+            if(hypot(e[0]-playerX,e[1]-playerZ)<22f) for(segment in 0 until 8) {
+                val offset=(segment-3.5f)*.12f
+                draw(orb,ob,e[0]+cos(yaw)*offset,2.65f,e[1]-sin(yaw)*offset,.045f,.045f,.045f,if(segment/8f<hp)healthColor else shadow,1f)
+            }
             val frozen=e[3]>0f
             val bob=if(frozen)0f else sin(elapsed*3f+i)*.12f
-            val material=if(frozen)magic else shadow
+            val material=if(e[4]>0f)hitColor else if(frozen)magic else shadow
             draw(orb,ob,e[0],.95f+bob,e[1],.48f,.82f,.38f,material)
             draw(orb,ob,e[0],1.85f+bob,e[1],.30f,.36f,.29f,material)
             draw(orb,ob,e[0]-.51f,1.04f+bob,e[1],.16f,.53f,.18f,material)
             draw(orb,ob,e[0]+.51f,1.04f+bob,e[1],.16f,.53f,.18f,material)
             draw(orb,ob,e[0]-.11f,1.91f+bob,e[1]+.27f,.055f,.04f,.03f,magic,1f)
             draw(orb,ob,e[0]+.11f,1.91f+bob,e[1]+.27f,.055f,.04f,.03f,magic,1f)
+        } }
+        enemies.forEach { e -> if(e[5]>0f) {
+            val progress=1f-e[5]/.7f
+            for(i in 0 until 8) { val angle=i*PI.toFloat()/4
+                draw(orb,ob,e[0]+cos(angle)*progress,1f+progress*1.8f,e[1]+sin(angle)*progress,.09f,.09f,.09f,magic,1f)
+            }
         } }
         if(effect>0) {
             val radius=.8f+(1f-effect)*7f
@@ -416,9 +439,15 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         }
 
     }
-    private fun publish() { setHud(GameStats(life.toInt(),mana.toInt(),kills,wave,enemies.count { it[2]>0 },ranks.toList(),cooldowns.toList())) }
+    private fun publish() {
+        val count=Integer.bitCount(shrineMask)
+        var nearest=1000f
+        for(i in 0 until 3) if(shrineMask and (1 shl i)==0) nearest=min(nearest,hypot(playerX-sin(i*2.09f)*53,playerZ-cos(i*2.09f)*53))
+        val guide=if(count==3) "3/3 sanctuaires éveillés" else "$count/3 sanctuaires · prochain à ${nearest.toInt()} m"
+        setHud(GameStats(life=life.toInt(),mana=mana.toInt(),kills=kills,wave=wave,shrineMask=shrineMask,guidance=guide,remaining=enemies.count { it[2]>0 },ranks=ranks.toList(),cooldowns=cooldowns.toList()))
+    }
     private fun resetEnemies() {
-        enemies.forEachIndexed { i,e -> e[0]=sin(i*2.4f)*(17+i%4*8);e[1]=cos(i*2.4f)*(17+i%4*8);e[2]=100f+(wave-1)*15f;e[3]=0f }
+        enemies.forEachIndexed { i,e -> e[0]=sin(i*2.4f)*(17+i%4*8);e[1]=cos(i*2.4f)*(17+i%4*8);e[2]=100f+(wave-1)*15f;e[3]=0f;e[4]=0f;e[5]=0f;e[6]=0f }
     }
     fun nextWave() { if(enemies.any { it[2]>0 })return;wave++;life=100f;mana=100f;resetEnemies();publish() }
     fun upgrade(index:Int) {
@@ -434,7 +463,13 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         enemies.forEach { e -> if(e[2]>0 && hypot(e[0]-playerX,e[1]-playerZ)<range) {
             e[2]-=(when(type){0->45f;1->30f;else->70f})+(ranks[type]-1)*10f
             if(type==1)e[3]=2f
-            if(e[2]<=0)kills++
+            e[4]=.2f
+            if(type==2) {
+                val distance=max(.1f,hypot(e[0]-playerX,e[1]-playerZ))
+                e[0]=(e[0]+(e[0]-playerX)/distance*1.8f).coerceIn(-82f,82f)
+                e[1]=(e[1]+(e[1]-playerZ)/distance*1.8f).coerceIn(-82f,82f)
+            }
+            if(e[2]<=0) { kills++;e[5]=.7f }
         } }
         publish()
     }
