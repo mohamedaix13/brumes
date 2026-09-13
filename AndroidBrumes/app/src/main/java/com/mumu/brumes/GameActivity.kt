@@ -115,7 +115,7 @@ class GameActivity : Activity() {
             body.addView(line)
         }
         body.addView(button("VAGUE SUIVANTE") { game.nextWave();closeMenu() }.apply { isEnabled=s.remaining==0;alpha=if(isEnabled)1f else .4f },LinearLayout.LayoutParams(-1,dp(48)))
-        body.addView(label("Joystick à gauche pour marcher. Sorts à droite.\nLe menu met le monde en pause. Les compétences sont conservées sur ce téléphone.",12f))
+        body.addView(label("Joystick à gauche pour marcher. Glisse sur le décor pour tourner la caméra. Sorts à droite.\nLe menu met le monde en pause. Les compétences sont conservées sur ce téléphone.",12f))
         scroll.addView(body);shade.addView(scroll,FrameLayout.LayoutParams(dp(560),-1,Gravity.CENTER))
         root.addView(shade,FrameLayout.LayoutParams(-1,-1));menu=shade
     }
@@ -140,7 +140,18 @@ class BrumesView(activity: Activity) : GLSurfaceView(activity) {
     fun upgrade(index:Int, done:()->Unit) { queueEvent { renderer.upgrade(index);post { save();done() } } }
     fun save() { val s=stats;prefs.edit().putInt("kills",s.kills).apply { s.ranks.forEachIndexed { i,r -> putInt("rank$i",r) } }.apply() }
     override fun onPause() { move(0f,0f);super.onPause() }
-    override fun onTouchEvent(e:MotionEvent):Boolean { return true }
+    private var lookX=0f; private var lookY=0f
+    override fun onTouchEvent(e:MotionEvent):Boolean {
+        when(e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> { lookX=e.x;lookY=e.y }
+            MotionEvent.ACTION_MOVE -> {
+                val dx=(e.x-lookX)/resources.displayMetrics.density
+                val dy=(e.y-lookY)/resources.displayMetrics.density
+                lookX=e.x;lookY=e.y;queueEvent { renderer.look(dx,dy) }
+            }
+        }
+        return true
+    }
 }
 
 private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) -> Unit) : GLSurfaceView.Renderer {
@@ -151,7 +162,12 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     private var wave=1
     private val ranks=initial.ranks.toIntArray()
     private val cooldowns=FloatArray(3)
-    private var uGlow=0
+    private var uGlow=0;private var uKind=0;private var uTime=0;private var uShadows=0
+    private val shadowPoints=FloatArray(24)
+    private var yaw=0f;private var cameraHeight=6f
+    fun look(dx:Float,dy:Float) { if(!paused) { yaw=(yaw-dx*.006f)%(2f*PI.toFloat());cameraHeight=(cameraHeight+dy*.035f).coerceIn(3.4f,13f) } }
+    private fun heightAt(x:Float,z:Float):Float = sin(x*.065f)*cos(z*.05f)*2.3f+sin(z*.12f+x*.035f)*.75f+cos(x*.16f-z*.09f)*.4f-.4f
+    private fun buffer(values:FloatArray)=java.nio.ByteBuffer.allocateDirect(values.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(values);position(0) }
     private var lastFrame = 0L; private var nextHud = 0f
     private val projection = FloatArray(16); private val view = FloatArray(16); private val vp = FloatArray(16)
     private val model = FloatArray(16); private val mvp = FloatArray(16)
@@ -166,7 +182,15 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         -1f,1f,1f, 1f,1f,1f, 1f,1f,-1f, -1f,1f,1f, 1f,1f,-1f, -1f,1f,-1f,
         -1f,-1f,-1f, 1f,-1f,-1f, 1f,-1f,1f, -1f,-1f,-1f, 1f,-1f,1f, -1f,-1f,1f
     )
-    private val ground = floatArrayOf(-100f,0f,-100f, 100f,0f,-100f, 100f,0f,100f, -100f,0f,-100f, 100f,0f,100f, -100f,0f,100f)
+    private val ground = run {
+        val values=FloatArray(80*80*18);var i=0
+        fun v(x:Float,z:Float) { values[i++]=x;values[i++]=heightAt(x,z);values[i++]=z }
+        for(z in 0 until 80) for(x in 0 until 80) {
+            val px=-100f+x*2.5f;val pz=-100f+z*2.5f
+            v(px,pz);v(px,pz+2.5f);v(px+2.5f,pz+2.5f)
+            v(px,pz);v(px+2.5f,pz+2.5f);v(px+2.5f,pz)
+        };values
+    }
     private val cb = java.nio.ByteBuffer.allocateDirect(cube.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(cube); position(0) }
     private val gb = java.nio.ByteBuffer.allocateDirect(ground.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(ground); position(0) }
     // Flat normals are built once; inverse scale keeps lighting correct on stretched meshes.
@@ -181,12 +205,25 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         }
         return java.nio.ByteBuffer.allocateDirect(values.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(values); position(0) }
     }
-    private val foliage = floatArrayOf(
-        -1f,0f,1f, 1f,0f,1f, 0f,2f,0f,
-        1f,0f,1f, 1f,0f,-1f, 0f,2f,0f,
-        1f,0f,-1f, -1f,0f,-1f, 0f,2f,0f,
-        -1f,0f,-1f, -1f,0f,1f, 0f,2f,0f
-    )
+    private val foliage = run {
+        val values=ArrayList<Float>()
+        for(i in 0 until 12) {
+            val a=i*PI.toFloat()/6;val b=(i+1)*PI.toFloat()/6
+            val ra=1f+sin(i*2.7f)*.14f;val rb=1f+sin((i+1)%12*2.7f)*.14f
+            values.addAll(listOf(cos(a)*ra,.12f+sin(i*2f)*.12f,sin(a)*ra, 0f,2f,0f, cos(b)*rb,.12f+sin((i+1)%12*2f)*.12f,sin(b)*rb))
+        };values.toFloatArray()
+    }
+    private val grass = run {
+        val values=ArrayList<Float>()
+        for(i in 0 until 1200) {
+            val x=sin(i*127.13f)*75f;val z=cos(i*71.71f)*75f
+            if(abs(x-sin(z*.085f)*5f)<2.8f)continue
+            val h=heightAt(x,z);val tall=.25f+(i%5)*.11f;val w=.16f
+            values.addAll(listOf(x-w,h,z,x+w,h,z,x+.07f,h+tall,z, x,h,z-w,x,h,z+w,x+.07f,h+tall,z))
+        };values.toFloatArray()
+    }
+    private val grb=buffer(grass)
+    private val grn=normals(grass)
     private val orb = run {
         val vertices=ArrayList<Float>()
         fun point(lat:Float,lon:Float) { vertices.add(cos(lat)*cos(lon));vertices.add(sin(lat));vertices.add(cos(lat)*sin(lon)) }
@@ -206,8 +243,15 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     private val magic=floatArrayOf(.24f,.72f,1f,1f)
     private val fb = java.nio.ByteBuffer.allocateDirect(foliage.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply { put(foliage); position(0) }
     private val cn = normals(cube); private val fn = normals(foliage)
-    private val gn = java.nio.ByteBuffer.allocateDirect(ground.size*4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer().apply {
-        repeat(ground.size/3) { put(0f); put(1f); put(0f) }; position(0)
+    private val gn = run {
+        val values=FloatArray(ground.size)
+        for(i in ground.indices step 3) {
+            val x=ground[i];val z=ground[i+2]
+            val nx=(heightAt(x-.1f,z)-heightAt(x+.1f,z))/.2f
+            val nz=(heightAt(x,z-.1f)-heightAt(x,z+.1f))/.2f
+            val length=sqrt(nx*nx+1f+nz*nz)
+            values[i]=nx/length;values[i+1]=1f/length;values[i+2]=nz/length
+        };buffer(values)
     }
     private val earth = floatArrayOf(.23f,.29f,.16f,1f)
     private val bark = floatArrayOf(.23f,.15f,.09f,1f)
@@ -223,16 +267,20 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         val vs = """
             attribute vec3 a; attribute vec3 n;
             uniform mat4 m; uniform mat4 model; uniform vec3 scale;
+            uniform mediump float kind; uniform float clock;
             varying mediump vec3 world; varying mediump vec3 normal;
             void main() {
-                world=(model*vec4(a,1.0)).xyz;
+                vec3 position=a;
+                if(kind>2.5 && kind<3.5) position.x+=sin(clock*1.4+a.z*.6+a.x)*.035;
+                world=(model*vec4(position,1.0)).xyz;
                 normal=normalize(n/scale);
-                gl_Position=m*vec4(a,1.0);
+                gl_Position=m*vec4(position,1.0);
             }
         """.trimIndent()
         val fs = """
             precision mediump float;
             uniform vec4 c; uniform vec3 eye; uniform float glow;
+            uniform mediump float kind; uniform vec3 shadows[8];
             varying mediump vec3 world; varying mediump vec3 normal;
             float hash(vec2 p) { return fract(sin(dot(mod(p,64.0),vec2(12.9898,78.233)))*437.58); }
             float noise(vec2 p) {
@@ -243,24 +291,34 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
             void main() {
                 vec3 base=c.rgb;
 
-                if(world.y < 0.025) {
+                if(kind>.5 && kind<1.5) {
                     float grain=material(world.xz*3.0);
                     float patch=material(world.xz*.28);
                     base=mix(vec3(.14,.20,.08),vec3(.31,.33,.17),patch)*(.72+grain*.48);
                     float path=1.0-smoothstep(1.1,2.6,abs(world.x-sin(world.z*.085)*5.0));
                     vec3 dirt=mix(vec3(.19,.15,.10),vec3(.42,.35,.24),grain);
                     base=mix(base,dirt,path*.92);
+                    float steep=1.0-smoothstep(.87,.99,normalize(normal).y);
+                    base=mix(base,vec3(.27,.26,.23)*(.75+grain*.4),steep*.5);
+                    float shade=0.0;
+                    for(int i=0;i<8;i++) {
+                        vec2 delta=(world.xz-shadows[i].xy-vec2(.3,-.2))/vec2(1.0,.65);
+                        float distanceSquared=dot(delta,delta);
+                        shade=max(shade,(1.0-smoothstep(.05,1.9,distanceSquared))*shadows[i].z);
+                    }
+                    base*=1.0-shade*.48;
                 } else { base *= .78+material((world.xz+world.y*.43)*2.0)*.44; }
                 float diffuse=max(dot(normalize(normal),normalize(vec3(-.55,.8,.35))),0.0);
                 vec3 lit=base*(vec3(.40,.48,.56)+vec3(.94,.79,.57)*diffuse*.85);
                 lit=mix(lit,c.rgb*1.35,glow);
                 float distanceToEye=length(world-eye);
-                float fog=1.0-exp(-distanceToEye*distanceToEye*.00019);
+                float fog=1.0-exp(-pow(distanceToEye*.012,2.0));
                 gl_FragColor=vec4(mix(lit,vec3(.31,.39,.43),clamp(fog,0.0,.97)),c.a);
             }
         """.trimIndent()
         fun shader(type:Int, source:String) = GLES20.glCreateShader(type).also { GLES20.glShaderSource(it,source); GLES20.glCompileShader(it) }
         program = GLES20.glCreateProgram().also { GLES20.glAttachShader(it,shader(GLES20.GL_VERTEX_SHADER,vs)); GLES20.glAttachShader(it,shader(GLES20.GL_FRAGMENT_SHADER,fs)); GLES20.glLinkProgram(it) }
+        uKind=GLES20.glGetUniformLocation(program,"kind");uTime=GLES20.glGetUniformLocation(program,"clock");uShadows=GLES20.glGetUniformLocation(program,"shadows[0]")
         uGlow=GLES20.glGetUniformLocation(program,"glow");
         aNormal=GLES20.glGetAttribLocation(program,"n"); uModel=GLES20.glGetUniformLocation(program,"model"); uScale=GLES20.glGetUniformLocation(program,"scale"); uEye=GLES20.glGetUniformLocation(program,"eye")
         aPos=GLES20.glGetAttribLocation(program,"a"); uMvp=GLES20.glGetUniformLocation(program,"m"); uColor=GLES20.glGetUniformLocation(program,"c")
@@ -269,7 +327,10 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     override fun onDrawFrame(gl: javax.microedition.khronos.opengles.GL10?) {
         val now=System.nanoTime(); val dt=if(lastFrame==0L) 0f else ((now-lastFrame)/1_000_000_000f).coerceIn(0f,.05f); lastFrame=now; if(paused) { renderScene();return }; elapsed += dt;
         for(i in cooldowns.indices) cooldowns[i]=max(0f,cooldowns[i]-dt); mana=min(100f,mana+dt*8); effect=max(0f,effect-dt)
-        playerX=(playerX+moveX*dt*8).coerceIn(-82f,82f); playerZ=(playerZ+moveZ*dt*8).coerceIn(-82f,82f)
+        val oldX=playerX;val oldZ=playerZ
+        val mx=moveX*cos(yaw)+moveZ*sin(yaw);val mz=-moveX*sin(yaw)+moveZ*cos(yaw)
+        playerX=(playerX+mx*dt*8).coerceIn(-82f,82f);playerZ=(playerZ+mz*dt*8).coerceIn(-82f,82f)
+        trees.forEach { t -> if(hypot(playerX-t[0],playerZ-t[1])<.55f+t[2]*.22f) { playerX=oldX;playerZ=oldZ } }
         enemies.forEach { e -> if(e[2]>0) { val dx=playerX-e[0]; val dz=playerZ-e[1]; val d=max(.1f,sqrt(dx*dx+dz*dz)); e[3]=max(0f,e[3]-dt); if(d<26 && e[3]<=0f) { e[0]+=dx/d*dt*1.35f; e[1]+=dz/d*dt*1.35f }; if(d<1.7f) life=max(0f,life-dt*5) } }
         if(life<=0) { playerX=0f;playerZ=0f;life=100f;mana=100f;resetEnemies() }
         if(elapsed>=nextHud) { nextHud=elapsed+.25f;publish() }
@@ -277,9 +338,18 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     }
     private fun renderScene() {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); GLES20.glUseProgram(program)
-        Matrix.setLookAtM(view,0,playerX,11f,playerZ+12f,playerX,0f,playerZ,0f,1f,0f); Matrix.multiplyMM(vp,0,projection,0,view,0)
-        GLES20.glUniform3f(uEye,playerX,11f,playerZ+12f)
+        val eyeX=playerX+sin(yaw)*11f;val eyeZ=playerZ+cos(yaw)*11f
+        val eyeY=max(heightAt(playerX,playerZ)+cameraHeight,heightAt(eyeX,eyeZ)+2.8f)
+        Matrix.setLookAtM(view,0,eyeX,eyeY,eyeZ,playerX,heightAt(playerX,playerZ)+1.1f,playerZ,0f,1f,0f);Matrix.multiplyMM(vp,0,projection,0,view,0)
+        GLES20.glUniform3f(uEye,eyeX,eyeY,eyeZ);GLES20.glUniform1f(uTime,elapsed)
+        shadowPoints.fill(0f);shadowPoints[0]=playerX;shadowPoints[1]=playerZ;shadowPoints[2]=1f
+        var shadowIndex=1
+        enemies.forEach { e -> if(e[2]>0 && shadowIndex<8 && hypot(e[0]-playerX,e[1]-playerZ)<24f) {
+            shadowPoints[shadowIndex*3]=e[0];shadowPoints[shadowIndex*3+1]=e[1];shadowPoints[shadowIndex*3+2]=.75f;shadowIndex++
+        } }
+        GLES20.glUniform3fv(uShadows,8,shadowPoints,0)
         draw(ground,gb,0f,0f,0f,1f,1f,1f,earth)
+        draw(grass,grb,0f,0f,0f,1f,1f,1f,leaves)
         trees.forEach { t ->
             val x=t[0]; val z=t[1]; val size=t[2]
             if (abs(x-playerX)<65f && abs(z-playerZ)<65f) {
@@ -291,9 +361,22 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         // Distant ridges give the small exploration area a visible horizon.
         for (i in 0 until 18) {
             val angle=i*.3491f; val x=sin(angle)*92f; val z=cos(angle)*92f
-            draw(foliage,fb,x,-.2f,z,12f+(i%3)*4f,8f+(i%5)*2.2f,14f,stone)
+            draw(orb,ob,x,2f,z,12f+(i%3)*4f,8f+(i%5)*2.2f,14f,stone)
         }
-        for(i in 0 until 3) { val a=i*2.09f; draw(cube,cb,sin(a)*53,2.4f,cos(a)*53,2.7f,2.4f,2.7f,if(effect>0) floatArrayOf(1f,.8f,.2f,1f) else floatArrayOf(.1f,.8f,1f,1f)) }
+        for(i in 0 until 3) {
+            val a=i*2.09f;val x=sin(a)*53;val z=cos(a)*53
+            draw(cube,cb,x,.15f,z,3.1f,.15f,3.1f,stone)
+            for(side in -1..1 step 2) {
+                draw(cube,cb,x+side*2.1f,2.1f,z,.38f,2.1f,.44f,stone)
+                draw(cube,cb,x+side*2.1f,.35f,z,.64f,.35f,.67f,stone)
+            }
+            draw(cube,cb,x,4.2f,z,2.6f,.36f,.52f,stone)
+            draw(orb,ob,x,1.8f+sin(elapsed+i)*.15f,z,.42f,.65f,.42f,magic,1f)
+        }
+        for(i in 0 until 24) {
+            val x=sin(i*2.39f)*((i%6)*9+12);val z=cos(i*1.67f)*((i%5)*12+16)
+            draw(orb,ob,x,.25f,z,.55f+(i%3)*.25f,.6f,.5f+(i%4)*.2f,stone)
+        }
         val stride=sin(elapsed*9f)*min(1f,hypot(moveX,moveZ))*.25f
         // Layered robe, articulated limbs and an emissive staff replace the block avatar.
         draw(orb,ob,playerX,.85f,playerZ,.58f,.88f,.44f,cloth)
@@ -355,6 +438,6 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         } }
         publish()
     }
-    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y,z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
+    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y+(if(vertices===ground || vertices===grass)0f else heightAt(x,z)),z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===grass)grn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);GLES20.glUniform1f(uKind,if(vertices===ground)1f else if(vertices===grass || vertices===foliage)3f else 0f);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
 }
 
