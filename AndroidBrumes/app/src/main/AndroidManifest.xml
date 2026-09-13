@@ -4,13 +4,13 @@
 
     <application
         android:theme="@style/AppTheme"
-        android:label="Brumes 0.6"
+        android:label="Brumes 0.7"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
         android:largeHeap="true">
         <activity
-            android:name="com.mumu.brumes.GameActivityV06"
+            android:name="com.mumu.brumes.GameActivityV07"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true">
