@@ -1,0 +1,72 @@
+        buf.position(6);GLES20.glVertexAttribPointer(aUv,2,GLES20.GL_FLOAT,false,32,buf);GLES20.glEnableVertexAttribArray(aUv)
+    }
+    private fun drawMesh(buf:FloatBuffer,count:Int,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,r:Float,g:Float,b:Float,a:Float=1f,tex:Int=0,glow:Float=0f,sky:Float=0f){
+        Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y,z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0)
+        GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform4f(uColor,r,g,b,a);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform1f(uUseTex,if(tex!=0)1f else 0f);GLES20.glUniform1f(uSky,sky)
+        if(tex!=0){GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,tex)}
+        bindMesh(buf);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,count)
+    }
+    private fun box(x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(cube,cubeCount,x,y,z,sx,sy,sz,r,g,b,a,tex,glow,0f)
+    private fun sph(x:Float,y:Float,z:Float,s:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(sphere,sphereCount,x,y,z,s,s,s,r,g,b,a,tex,glow,0f)
+
+    private fun drawSky(ex:Float,ey:Float,ez:Float,tex:Int){
+        GLES20.glDepthMask(false);GLES20.glDisable(GLES20.GL_CULL_FACE)
+        drawMesh(sphere,sphereCount,ex,ey,ez,92f,92f,92f,1f,1f,1f,1f,tex,0f,1f)
+        GLES20.glEnable(GLES20.GL_CULL_FACE);GLES20.glDepthMask(true);GLES20.glUniform1f(uSky,0f)
+    }
+    private fun drawTerrain(){
+        val tint=when(world){0->floatArrayOf(.72f,.88f,.70f);1->floatArrayOf(.68f,.78f,.86f);else->floatArrayOf(.57f,.79f,.58f)}
+        val b=terrain[world]?:return;drawMesh(b,terrainCount[world],0f,0f,0f,1f,1f,1f,tint[0],tint[1],tint[2],1f,texGrass,0f,0f)
+    }
+    private fun drawMainScenery(){
+        val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatArrayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
+        for((i,p) in trees.withIndex()){
+            val gy=ground(p[0],p[1]);val h=2.7f+(i%3)*.32f
+            box(p[0],gy+h*.55f,p[1],.34f,h*.55f,.34f,.82f,.72f,.58f,texLog)
+            sph(p[0],gy+h+1.05f,p[1],1.45f,.46f,.76f,.42f,texLeaves)
+            sph(p[0]-.85f,gy+h+.55f,p[1]+.15f,.92f,.38f,.68f,.35f,texLeaves)
+            sph(p[0]+.75f,gy+h+.68f,p[1]-.18f,.9f,.42f,.72f,.38f,texLeaves)
+        }
+        for(i in -7..7){val z=i*3.8f;val gy=ground(0f,z);box(0f,gy+.05f,z,1.25f,.10f,1.45f,.82f,.82f,.80f,texCobble)}
+        val rocks=arrayOf(floatArrayOf(-16f,8f),floatArrayOf(17f,7f),floatArrayOf(-13f,-15f),floatArrayOf(14f,-14f),floatArrayOf(-31f,-6f),floatArrayOf(29f,6f))
+        for((i,p) in rocks.withIndex()){val gy=ground(p[0],p[1]);box(p[0],gy+.45f,p[1],.65f+(i%2)*.3f,.45f,.8f,.72f,.74f,.72f,texMoss)}
+    }
+    private fun drawImportedMap(w:Int){
+        for(o in maps[w]){
+            val y=o.y+mapYOffset[w];val tex=when{(o.b>o.r*1.15f&&o.b>o.g*.95f)->texBlue;(o.g>o.r*1.20f&&o.g>o.b*1.05f)->texLeaves;(o.r>.42f&&o.g>.22f&&o.g<o.r*.82f)->texLog;(o.r<.28f&&o.g<.28f&&o.b<.34f)->texObsidian;else->if(w==2)texMoss else texStone}
+            val rr=(.55f+o.r*.55f).coerceIn(.42f,1.05f);val gg=(.55f+o.g*.55f).coerceIn(.42f,1.05f);val bb=(.55f+o.b*.55f).coerceIn(.42f,1.05f)
+            box(o.x,y,o.z,max(.12f,o.sx),max(.12f,o.sy),max(.12f,o.sz),rr,gg,bb,tex)
+        }
+        if(w==2){
+            val extra=arrayOf(floatArrayOf(-20f,-20f),floatArrayOf(-30f,10f),floatArrayOf(22f,-24f),floatArrayOf(30f,16f))
+            for(p in extra){val gy=ground(p[0],p[1],w);box(p[0],gy+1.3f,p[1],.28f,1.3f,.28f,.78f,.67f,.52f,texLog);sph(p[0],gy+3.2f,p[1],1.3f,.38f,.68f,.34f,texLeaves)}
+        }
+    }
+    private fun drawRuins(){
+        for((ri,r) in ruins[world].withIndex()){
+            val gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
+            for(k in 0 until 8){val a=k*PI.toFloat()/4f;box(r[0]+cos(a)*2.05f,gy+.18f,r[1]+sin(a)*2.05f,.42f,.16f,.72f,.78f,.82f,.84f,texMoss,pulse)}
+            box(r[0],gy+.06f,r[1],1.15f,.07f,1.15f,.30f,.72f,1f,texBlue,.72f)
+        }
+    }
+    private fun drawPortals(){
+        fun portal(x:Float,z:Float,r:Float,g:Float,b:Float){
+            val gy=ground(x,z);box(x-1.55f,gy+1.65f,z,.34f,1.65f,.45f,.72f,.74f,.78f,texCobble);box(x+1.55f,gy+1.65f,z,.34f,1.65f,.45f,.72f,.74f,.78f,texCobble);box(x,gy+3.15f,z,1.9f,.30f,.45f,.72f,.74f,.78f,texCobble)
+            box(x,gy+1.65f,z,.06f,1.35f,1.25f,r,g,b,texObsidian,.95f,.82f)
+            for(k in 0 until 6){val a=t*1.5f+k*PI.toFloat()/3f;sph(x+cos(a)*1.25f,gy+1.65f+sin(a*.7f)*.9f,z+.18f,.08f,r,g,b,0,1f)}
+        }
+        if(world==0){portal(24f,0f,.25f,.66f,1f);portal(-24f,0f,.72f,.35f,1f)}else portal(0f,18f,.35f,.75f,1f)
+    }
+    private fun drawHumanoid(x:Float,z:Float,friendly:Boolean,player:Boolean=false){
+        val gy=if(player)py else ground(x,z)+1.05f;val body=if(player)floatArrayOf(.22f,.28f,.34f) else if(friendly)floatArrayOf(.18f,.42f,.34f) else floatArrayOf(.48f,.08f,.08f)
+        box(x,gy,z,.36f,.78f,.25f,body[0],body[1],body[2],if(player)texStone else 0)
+        sph(x,gy+1.08f,z,.34f,.84f,.70f,.58f,0)
+        box(x-.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x+.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x-.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0);box(x+.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0)
+    }
+    private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly)}
+    private fun drawPlayer(){drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
+    private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,(s.life/.8f).coerceIn(0f,1f))}
+
+}
