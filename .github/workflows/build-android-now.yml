@@ -22,6 +22,9 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
       - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Assembler le moteur Brumes 0.7
+        run: |
+          cat AndroidBrumes/v07src/part1.txt AndroidBrumes/v07src/part2.txt AndroidBrumes/v07src/part3.txt AndroidBrumes/v07src/part4.txt AndroidBrumes/v07src/part5.txt > AndroidBrumes/app/src/main/java/com/mumu/brumes/GameActivityV07.kt
       - name: Compiler l'APK
         run: |
           curl --fail --silent --show-error --location https://services.gradle.org/distributions/gradle-8.10.2-bin.zip --output /tmp/gradle.zip
@@ -32,5 +35,3 @@ jobs:
           name: Brumes-Android-APK
           path: AndroidBrumes/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
-
-# Relance après correction Java 17.
