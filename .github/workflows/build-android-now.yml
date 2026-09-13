@@ -31,3 +31,5 @@ jobs:
           name: Brumes-Android-APK
           path: AndroidBrumes/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+
+# Relance après correction Java 17.
