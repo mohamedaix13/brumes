@@ -78,7 +78,7 @@ class GameActivity : Activity() {
         }
         root.addView(pad,FrameLayout.LayoutParams(dp(138),dp(138),Gravity.BOTTOM or Gravity.START).apply { setMargins(dp(16),0,0,dp(12)) })
         game.onStats={ s ->
-            hud.text="BRUMES  ·  Mage niveau ${s.level}\nVie ${s.life} / 100    Mana ${s.mana} / 100\n${s.points} point(s) de compétence"
+            hud.text="BRUMES 0.4  ·  Mage niveau ${s.level}\nVie ${s.life} / 100    Mana ${s.mana} / 100\n${s.points} point(s) de compétence"
             objective.text="${s.guidance}\n"+(if(s.remaining==0) "Vague terminée · Ouvre le menu" else "Vague ${s.wave} · ${s.remaining} ombres")
             spells.forEachIndexed { i,b ->
                 val cd=s.cooldowns[i]; val cost=listOf(14,25,38)[i]
@@ -131,7 +131,7 @@ class BrumesView(activity: Activity) : GLSurfaceView(activity) {
     private fun resizeSurface() { if(width>0 && height>0) { val scale=if(detailed)1f else .75f;holder.setFixedSize(max(1,(width*scale).toInt()),max(1,(height*scale).toInt())) } }
     override fun onSizeChanged(w:Int,h:Int,oldw:Int,oldh:Int) { super.onSizeChanged(w,h,oldw,oldh);resizeSurface() }
     fun setQuality(value:Boolean) { detailed=value;prefs.edit().putBoolean("detailed",value).apply();resizeSurface() }
-    private val renderer=BrumesRenderer(stats) { value -> stats=value;post { onStats?.invoke(value) } }
+    private val renderer=BrumesRenderer(stats,activity.assets) { value -> stats=value;post { onStats?.invoke(value) } }
     init { setEGLContextClientVersion(2);setRenderer(renderer);renderMode=RENDERMODE_CONTINUOUSLY }
     fun cast(spell:Int) { queueEvent { renderer.cast(spell) } }
     fun move(x:Float,z:Float) { renderer.moveX=x;renderer.moveZ=z }
@@ -154,8 +154,22 @@ class BrumesView(activity: Activity) : GLSurfaceView(activity) {
     }
 }
 
-private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) -> Unit) : GLSurfaceView.Renderer {
+private class BrumesRenderer(initial:GameStats, private val assets:android.content.res.AssetManager, private val setHud: (GameStats) -> Unit) : GLSurfaceView.Renderer {
     @Volatile var moveX = 0f; @Volatile var moveZ = 0f
+    private var uTexture=0;private var uDirt=0;private var uTextured=0
+    private val textureIds=IntArray(5)
+    private fun loadTextures() {
+        GLES20.glGenTextures(5,textureIds,0)
+        listOf("grass_top","stone","dirt","log_oak","wool_colored_blue").forEachIndexed { i,name ->
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textureIds[i])
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_REPEAT)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR_MIPMAP_LINEAR)
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
+            val bitmap=assets.open("$name.png").use { android.graphics.BitmapFactory.decodeStream(it) }
+            android.opengl.GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bitmap,0);GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);bitmap.recycle()
+        }
+    }
     private var program = 0; private var aPos = 0; private var uMvp = 0; private var uColor = 0
     private var aNormal = 0; private var uModel = 0; private var uScale = 0; private var uEye = 0
     var paused=true
@@ -283,6 +297,7 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         val fs = """
             precision mediump float;
             uniform vec4 c; uniform vec3 eye; uniform float glow;
+            uniform sampler2D surfaceTexture;uniform sampler2D dirtTexture;uniform float textured;
             uniform mediump float kind; uniform vec3 shadows[8];
             varying mediump vec3 world; varying mediump vec3 normal;
             float hash(vec2 p) { return fract(sin(dot(mod(p,64.0),vec2(12.9898,78.233)))*437.58); }
@@ -297,9 +312,9 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
                 if(kind>.5 && kind<1.5) {
                     float grain=material(world.xz*3.0);
                     float patch=material(world.xz*.28);
-                    base=mix(vec3(.14,.20,.08),vec3(.31,.33,.17),patch)*(.72+grain*.48);
+                    base=texture2D(surfaceTexture,world.xz*.65).rgb*vec3(.62,.79,.34)*(.85+patch*.3);
                     float path=1.0-smoothstep(1.1,2.6,abs(world.x-sin(world.z*.085)*5.0));
-                    vec3 dirt=mix(vec3(.19,.15,.10),vec3(.42,.35,.24),grain);
+                    vec3 dirt=texture2D(dirtTexture,world.xz*.65).rgb;
                     base=mix(base,dirt,path*.92);
                     float steep=1.0-smoothstep(.87,.99,normalize(normal).y);
                     base=mix(base,vec3(.27,.26,.23)*(.75+grain*.4),steep*.5);
@@ -311,6 +326,11 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
                     }
                     base*=1.0-shade*.48;
                 } else { base *= .78+material((world.xz+world.y*.43)*2.0)*.44; }
+                if(textured>.5 && kind<.5) {
+                    vec3 weights=abs(normalize(normal));
+                    vec2 uv=weights.y>max(weights.x,weights.z)?world.xz:(weights.x>weights.z?world.zy:world.xy);
+                    base=mix(texture2D(surfaceTexture,uv*.8).rgb,c.rgb,.16);
+                }
                 float diffuse=max(dot(normalize(normal),normalize(vec3(-.55,.8,.35))),0.0);
                 vec3 lit=base*(vec3(.40,.48,.56)+vec3(.94,.79,.57)*diffuse*.85);
                 lit=mix(lit,c.rgb*1.35,glow);
@@ -321,6 +341,7 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         """.trimIndent()
         fun shader(type:Int, source:String) = GLES20.glCreateShader(type).also { GLES20.glShaderSource(it,source); GLES20.glCompileShader(it) }
         program = GLES20.glCreateProgram().also { GLES20.glAttachShader(it,shader(GLES20.GL_VERTEX_SHADER,vs)); GLES20.glAttachShader(it,shader(GLES20.GL_FRAGMENT_SHADER,fs)); GLES20.glLinkProgram(it) }
+        loadTextures();uTexture=GLES20.glGetUniformLocation(program,"surfaceTexture");uDirt=GLES20.glGetUniformLocation(program,"dirtTexture");uTextured=GLES20.glGetUniformLocation(program,"textured")
         uKind=GLES20.glGetUniformLocation(program,"kind");uTime=GLES20.glGetUniformLocation(program,"clock");uShadows=GLES20.glGetUniformLocation(program,"shadows[0]")
         uGlow=GLES20.glGetUniformLocation(program,"glow");
         aNormal=GLES20.glGetAttribLocation(program,"n"); uModel=GLES20.glGetUniformLocation(program,"model"); uScale=GLES20.glGetUniformLocation(program,"scale"); uEye=GLES20.glGetUniformLocation(program,"eye")
@@ -349,6 +370,8 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
     }
     private fun renderScene() {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT); GLES20.glUseProgram(program)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textureIds[2]);GLES20.glUniform1i(uDirt,1)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glUniform1i(uTexture,0)
         val eyeX=playerX+sin(yaw)*11f;val eyeZ=playerZ+cos(yaw)*11f
         val eyeY=max(heightAt(playerX,playerZ)+cameraHeight,heightAt(eyeX,eyeZ)+2.8f)
         Matrix.setLookAtM(view,0,eyeX,eyeY,eyeZ,playerX,heightAt(playerX,playerZ)+1.1f,playerZ,0f,1f,0f);Matrix.multiplyMM(vp,0,projection,0,view,0)
@@ -473,6 +496,6 @@ private class BrumesRenderer(initial:GameStats, private val setHud: (GameStats) 
         } }
         publish()
     }
-    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y+(if(vertices===ground || vertices===grass)0f else heightAt(x,z)),z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===grass)grn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);GLES20.glUniform1f(uKind,if(vertices===ground)1f else if(vertices===grass || vertices===foliage)3f else 0f);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
+    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y+(if(vertices===ground || vertices===grass)0f else heightAt(x,z)),z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===grass)grn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);val textureIndex=if(vertices===ground)0 else if(color===stone)1 else if(color===bark)3 else if(color===cloth)4 else -1;GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textureIds[max(0,textureIndex)]);GLES20.glUniform1f(uTextured,if(textureIndex>=0)1f else 0f);GLES20.glUniform1f(uKind,if(vertices===ground)1f else if(vertices===grass || vertices===foliage)3f else 0f);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
 }
 
