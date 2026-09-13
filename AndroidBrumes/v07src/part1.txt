@@ -1,0 +1,109 @@
+package com.mumu.brumes
+
+import android.app.Activity
+import android.content.res.AssetManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.opengl.GLES20
+import android.opengl.GLSurfaceView
+import android.opengl.GLUtils
+import android.opengl.Matrix
+import android.os.Bundle
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
+import org.json.JSONObject
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
+import kotlin.math.*
+
+private data class V07Hud(
+    val life:Int,
+    val mana:Int,
+    val world:String,
+    val flying:Boolean,
+    val enemies:Int,
+    val spell:String
+)
+
+class GameActivityV07 : Activity() {
+    private lateinit var root:FrameLayout
+    private lateinit var game:BrumesV07View
+    private var menu:View?=null
+    private val gold=Color.rgb(228,196,126)
+    private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
+    private fun panel(alpha:Int=185)=android.graphics.drawable.GradientDrawable().apply{
+        setColor(Color.argb(alpha,7,11,16));cornerRadius=dp(13).toFloat();setStroke(dp(1),Color.argb(130,228,196,126))
+    }
+    private fun text(t:String,size:Float=11f)=TextView(this).apply{
+        this.text=t;textSize=size;setTextColor(Color.rgb(245,242,234));setPadding(dp(9),dp(5),dp(9),dp(5))
+    }
+    private fun button(t:String,w:Int=70,onClick:()->Unit)=Button(this).apply{
+        text=t;textSize=9.5f;isAllCaps=false;setTextColor(gold);backgroundTintList=null;background=panel(178)
+        setPadding(dp(3),0,dp(3),0);minWidth=0;minHeight=0;setOnClickListener{onClick()}
+        layoutParams=LinearLayout.LayoutParams(dp(w),dp(42))
+    }
+    override fun onCreate(savedInstanceState:Bundle?){
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+        root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
+        game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
+
+        val hud=text("BRUMES 0.7",10.5f).apply{background=panel(178)}
+        root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
+        root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
+
+        val left=V07Stick(this){x,y->game.move(x,y)}
+        root.addView(left,FrameLayout.LayoutParams(dp(122),dp(122),Gravity.BOTTOM or Gravity.START).apply{setMargins(dp(10),0,0,dp(9))})
+        val right=V07Stick(this){x,y->game.look(x,y)}
+        root.addView(right,FrameLayout.LayoutParams(dp(108),dp(108),Gravity.BOTTOM or Gravity.END).apply{setMargins(0,0,dp(10),dp(9))})
+
+        val spells=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER}
+        spells.addView(button("🔥 Feu",66){game.element(0)})
+        spells.addView(button("💧 Eau",66){game.element(1)})
+        spells.addView(button("🌪 Air",66){game.element(2)})
+        spells.addView(button("🪨 Terre",66){game.element(3)})
+        root.addView(spells,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(45),Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{setMargins(0,0,0,dp(8))})
+
+        val actions=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
+        actions.addView(button("✦ Esquive",78){game.dash()})
+        actions.addView(button("☁ Vol",78){game.flight()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
+        actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
+        root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
+
+        game.onHud={s->hud.text="BRUMES 0.7 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        setContentView(root)
+    }
+    override fun onPause(){game.onPause();super.onPause()}
+    override fun onResume(){super.onResume();game.onResume()}
+    @Deprecated("Deprecated in Java") override fun onBackPressed(){if(menu==null)openMenu() else closeMenu()}
+    private fun closeMenu(){menu?.let{root.removeView(it)};menu=null;game.setPaused(false)}
+    private fun openMenu(){
+        if(menu!=null)return
+        game.setPaused(true)
+        val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
+        val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
+        body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
+        body.addView(text("0.7 · textures Conquest actives · ciels HDR · cartes réintégrées",11f).apply{gravity=Gravity.CENTER})
+        body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
+        body.addView(text("Joystick gauche : déplacement. Droit : caméra et hauteur en vol. Deux éléments lancent une combinaison. Les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
+        shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
+        root.addView(shade,FrameLayout.LayoutParams(-1,-1));menu=shade
+    }
+}
+
+private class V07Stick(activity:Activity,val out:(Float,Float)->Unit):View(activity){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG);private var dx=0f;private var dy=0f
+    override fun onDraw(c:Canvas){
+        val r=min(width,height)*.39f;p.style=Paint.Style.FILL;p.color=0x2410151B;c.drawCircle(width/2f,height/2f,r,p)
