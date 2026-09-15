@@ -66,7 +66,6 @@ final class GameController: UIViewController {
     private var obstacles: [(Float, Float, Float)] = []
     private var health: Float = 100
     private var mana: Float = 100
-    private var cooldowns: [Float] = [0, 0, 0]
     private var facing: Float = 0
     private var clock: CADisplayLink?
     private var lastTime: CFTimeInterval = 0
@@ -74,6 +73,14 @@ final class GameController: UIViewController {
     private var messageTime: Float = 12
     private var kills = 0
     private var seed: UInt64 = 926
+
+    // Six sorts : Feu, Givre, Onde, Brume, Foudre, Lumière
+    private let spellNames = ["FEU", "GIVRE", "ONDE", "BRUME", "FOUDRE", "LUMIÈRE"]
+    private let spellCosts: [Float] = [14, 25, 38, 20, 30, 15]
+    private let spellCooldowns: [Float] = [0.55, 3.5, 5.0, 4.0, 4.5, 3.0]
+    private let spellColors: [UIColor] = [.systemOrange, .systemCyan, .systemPurple, UIColor(white: 0.72, alpha: 1), .systemYellow, .systemYellow]
+    private var cooldowns: [Float] = [0, 0, 0, 0, 0, 0]
+
     override var prefersStatusBarHidden: Bool { true }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
 
@@ -216,18 +223,18 @@ final class GameController: UIViewController {
         notice.textColor = .white
         notice.textAlignment = .center
         notice.numberOfLines = 2
-        notice.text = "BRUMES — Les trois sanctuaires\nExplore la vallée et approche les cristaux pour les éveiller."
+        notice.text = "BRUMES — Les trois sanctuaires\nSix sorts te répondent. Approche les cristaux pour les éveiller."
         notice.backgroundColor = UIColor.black.withAlphaComponent(0.35)
         view.addSubview(notice)
         view.addSubview(stick)
-        for (i, title) in ["FEU", "GIVRE", "ONDE"].enumerated() {
+        for (i, title) in spellNames.enumerated() {
             let button = UIButton(type: .system)
             button.tag = i
             button.setTitle(title, for: .normal)
-            button.titleLabel?.font = .boldSystemFont(ofSize: 13)
+            button.titleLabel?.font = .boldSystemFont(ofSize: 11)
             button.setTitleColor(.white, for: .normal)
-            button.backgroundColor = [UIColor.systemOrange, .systemCyan, .systemPurple][i].withAlphaComponent(0.65)
-            button.layer.cornerRadius = 32
+            button.backgroundColor = spellColors[i].withAlphaComponent(0.65)
+            button.layer.cornerRadius = 30
             button.addTarget(self, action: #selector(cast(_:)), for: .touchUpInside)
             view.addSubview(button)
             buttons.append(button)
@@ -242,7 +249,8 @@ final class GameController: UIViewController {
         notice.frame = CGRect(x: w / 2 - 205, y: s.top + 90, width: 410, height: 50)
         stick.frame = CGRect(x: s.left + 24, y: h - s.bottom - 140, width: 120, height: 120)
         for (i, b) in buttons.enumerated() {
-            b.frame = CGRect(x: w - s.right - 92 - CGFloat(i) * 78, y: h - s.bottom - 95, width: 68, height: 68)
+            let row = i / 3, col = i % 3
+            b.frame = CGRect(x: w - s.right - 86 - CGFloat(col) * 76, y: h - s.bottom - 88 - CGFloat(row) * 76, width: 64, height: 64)
         }
     }
     private var cameraAngle: Float = 0
@@ -272,7 +280,7 @@ final class GameController: UIViewController {
             if canWalk(player.position.x, player.position.z + dz) { player.position.z += dz }
         }
         mana = min(100, mana + dt * 9)
-        for i in 0..<3 { cooldowns[i] = max(0, cooldowns[i] - dt) }
+        for i in 0..<cooldowns.count { cooldowns[i] = max(0, cooldowns[i] - dt) }
         for e in enemies where e.health > 0 {
             let d = distance(e.node.position, player.position)
             e.frozen = max(0, e.frozen - dt)
@@ -311,10 +319,9 @@ final class GameController: UIViewController {
             return "\(directions[sector]) Sanctuaire \(item.offset + 1) : \(Int(distance(player.position, p))) m"
         } ?? "Vallée libérée"
         hud.text = "  BRUMES  ·  Vie \(Int(health))  ·  Mana \(Int(mana))\n  Sanctuaires \(active.count)/3  ·  Ombres vaincues \(kills)\n  \(goal)"
-        let names = ["FEU", "GIVRE", "ONDE"], costs: [Float] = [14, 25, 38]
-        for i in 0..<3 {
-            buttons[i].setTitle(cooldowns[i] > 0 ? String(format: "%.1fs", cooldowns[i]) : names[i], for: .normal)
-            buttons[i].alpha = cooldowns[i] > 0 || mana < costs[i] ? 0.4 : 1
+        for i in 0..<buttons.count {
+            buttons[i].setTitle(cooldowns[i] > 0 ? String(format: "%.1fs", cooldowns[i]) : spellNames[i], for: .normal)
+            buttons[i].alpha = cooldowns[i] > 0 || mana < spellCosts[i] ? 0.4 : 1
         }
         messageTime -= dt
         notice.isHidden = messageTime <= 0
@@ -324,15 +331,34 @@ final class GameController: UIViewController {
     }
     private func show(_ message: String) { notice.text = message; messageTime = 7; notice.isHidden = false }
     @objc private func cast(_ sender: UIButton) {
-        let i = sender.tag, costs: [Float] = [14, 25, 38]
-        guard cooldowns[i] <= 0, mana >= costs[i] else { return }
-        mana -= costs[i]
-        cooldowns[i] = [0.55, 3.5, 5.0][i]
+        let i = sender.tag
+        guard cooldowns[i] <= 0, mana >= spellCosts[i] else { return }
+        mana -= spellCosts[i]
+        cooldowns[i] = spellCooldowns[i]
         let origin = player.position
-        if i == 2 {
+        switch i {
+        case 2: // ONDE — onde de choc autour du mage
             burst(at: origin, color: .systemPurple, radius: 8)
             for e in enemies where e.health > 0 && distance(origin, e.node.position) < 8 { hit(e, damage: 65, freeze: 0.8) }
-        } else {
+        case 3: // BRUME — nuage qui blesse et ralentit
+            burst(at: origin, color: UIColor(white: 0.72, alpha: 1), radius: 6)
+            for e in enemies where e.health > 0 && distance(origin, e.node.position) < 6 { hit(e, damage: 15, freeze: 5.0) }
+        case 4: // FOUDRE — éclairs sur une ligne devant le mage
+            let end = SCNVector3(origin.x + sin(facing) * 20, 0, origin.z + cos(facing) * 20)
+            var struck = false
+            for e in enemies where e.health > 0 {
+                if pointNearLine(origin, end, e.node.position, tolerance: 2.0) {
+                    lightningBolt(at: e.node.position)
+                    hit(e, damage: 50, freeze: 0)
+                    struck = true
+                }
+            }
+            if !struck { lightningBolt(at: end) }
+        case 5: // LUMIÈRE — soin
+            health = min(100, health + 35)
+            burst(at: origin, color: .systemYellow, radius: 2)
+            show("La lumière te soigne : +35 vie.")
+        default: // FEU et GIVRE — projectiles à ciblage automatique
             let color: UIColor = i == 0 ? .systemOrange : .systemCyan
             let target = enemies.filter { $0.health > 0 && distance(origin, $0.node.position) < 24 }.min { distance(origin, $0.node.position) < distance(origin, $1.node.position) }
             let destination = target?.node.position ?? SCNVector3(origin.x + sin(facing) * 20, 0, origin.z + cos(facing) * 20)
@@ -349,6 +375,18 @@ final class GameController: UIViewController {
                 projectile?.removeFromParentNode()
             }]))
         }
+    }
+    private func pointNearLine(_ a: SCNVector3, _ b: SCNVector3, _ p: SCNVector3, tolerance: Float) -> Bool {
+        let len = hypot(b.x - a.x, b.z - a.z)
+        guard len > 0.01 else { return false }
+        let cross = (b.x - a.x) * (p.z - a.z) - (b.z - a.z) * (p.x - a.x)
+        let along = (p.x - a.x) * (b.x - a.x) + (p.z - a.z) * (b.z - a.z)
+        return abs(cross) / len < tolerance && along >= 0 && along <= len * len
+    }
+    private func lightningBolt(at position: SCNVector3) {
+        let bolt = object(SCNCylinder(radius: 0.12, height: 26), .systemYellow, SCNVector3(position.x, 13, position.z), glow: true)
+        bolt.runAction(.sequence([.fadeOut(duration: 0.35), .removeFromParentNode()]))
+        burst(at: position, color: .systemYellow, radius: 1.4)
     }
     private func hit(_ e: Enemy, damage: Float, freeze: Float) {
         e.health -= damage
