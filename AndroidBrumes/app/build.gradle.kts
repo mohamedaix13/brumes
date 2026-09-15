@@ -10,13 +10,13 @@ android {
         applicationId = "com.mumu.brumes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.7.0"
+        versionCode = 11
+        versionName = "0.9.0"
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".s25tex070"
-            versionNameSuffix = "-s25test"
+            applicationIdSuffix = ".s25v090"
+            versionNameSuffix = "-s25v09"
         }
     }
     compileOptions {
