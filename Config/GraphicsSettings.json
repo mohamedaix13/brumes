@@ -1,0 +1,34 @@
+{
+  "graphicLevels": {
+    "Low": {
+      "resolution": "720p",
+      "textureSize": "512x512",
+      "particles": 100,
+      "shadows": "Static",
+      "postProcessing": false,
+      "targetFPS": 30
+    },
+    "Medium": {
+      "resolution": "1080p",
+      "textureSize": "1024x1024",
+      "particles": 500,
+      "shadows": "Dynamic (1 cascade)",
+      "postProcessing": true,
+      "targetFPS": 45
+    },
+    "Ultra": {
+      "resolution": "1440p/4K",
+      "textureSize": "2048x2048",
+      "particles": 1000,
+      "shadows": "Dynamic (4 cascades)",
+      "postProcessing": true,
+      "targetFPS": 60
+    }
+  },
+  "defaultLevel": "Medium",
+  "androidSettings": {
+    "minAPI": 26,
+    "targetDevices": ["Galaxy Tab A9+", "S25 Ultra"],
+    "screenOrientation": "Portrait and Landscape"
+  }
+}
