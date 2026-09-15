@@ -2,11 +2,11 @@
 
 Jeu RPG 3D natif, sans réseau ni dépendance à télécharger — iPhone (SceneKit/Metal) et Android (OpenGL ES 2.0).
 
-## Android — Brumes 0.8
+## Android — Brumes 0.9
 
 Moteur OpenGL ES 2.0 compact en un fichier Kotlin (`AndroidBrumes/app/src/main/java/com/mumu/brumes/GameActivityV07.kt`), compilé par GitHub Actions en APK debug.
 
-Nouveautés 0.8 par rapport à 0.7 :
+Nouveautés 0.9 par rapport à 0.8 :
 
 - **Ciels vivants** : dégradé horizon/zénith calculé au shader, soleil et lune avec halo, étoiles scintillantes la nuit.
 - **Brumes volumétriques** : brouillard de distance + brouillard rampant au ras du sol (effet « brumes » qui donne son nom au jeu).
@@ -17,6 +17,11 @@ Nouveautés 0.8 par rapport à 0.7 :
 - **Gameplay enrichi** : ennemis à distance (Éther), mini-boss (260 PV, plus de dégâts et butin plus riche), états gel/ralenti/brûlure, drops de soin et de mana, score et compteur de victoires.
 - **Combinaisons de sorts** étendues : Givre (immobilise), Lave (gros dégâts + brûlure), Vapeur (soigne), Tempête de braises/sable (zone), Boue entravante (ralentit).
 - **Cartes réintégrées et plus denses** : 250 objets par monde importé (vs 50/120 auparavant).
+- **Eau animée** : plan d'eau avec ondulation au vertex shader et reflet translucide.
+- **Cycle jour/nuit continu et lent** : soleil et lune décrivent un arc dans le ciel, étoiles qui s'estompent en douceur, couleurs et brouillard interpolés ; la **nuit rend les ennemis plus dangereux**.
+- **Sauvegarde persistante** (SharedPreferences) : progression, cristaux, mondes purifiés, score, position et heure du jour conservés.
+- **Barres de vie** au-dessus des ennemis et du boss, **minimap** 2D en superposition, **indicateur de combo** d'élément sélectionné au HUD.
+- **Variété d'ennemis** : teinte et type distincts selon le monde (brume rouge, mage violet d'Éther, bête verte de la Forêt).
 - **Performance** : culling de distance sur les objets importés et la herbe, mipmap linéaire sur les textures.
 
 ### Construire l'APK
