@@ -17,8 +17,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
-      - name: Installer le SDK Android
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Installer Gradle et compiler
         run: |
           curl --fail --silent --show-error --location https://services.gradle.org/distributions/gradle-8.10.2-bin.zip --output /tmp/gradle.zip

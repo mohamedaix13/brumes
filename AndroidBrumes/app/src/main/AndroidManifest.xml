@@ -4,7 +4,7 @@
 
     <application
         android:theme="@style/AppTheme"
-        android:label="Brumes 0.7"
+        android:label="Brumes 0.8"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
