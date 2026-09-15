@@ -1,7 +1,7 @@
 # Brumes — Les trois sanctuaires
 
 Prototype source d'un petit RPG d'action 3D natif pour iPhone, en français.
-Version 0.1. Aucune connexion réseau, aucun appel à une IA, aucune dépendance
+Version 0.2. Aucune connexion réseau, aucun appel à une IA, aucune dépendance
 à télécharger pour le jeu. Jouer ne consomme pas de quota ChatGPT.
 
 ## Ce qui est inclus
@@ -11,6 +11,9 @@ Version 0.1. Aucune connexion réseau, aucun appel à une IA, aucune dépendance
 - Feu : attaque à distance, ciblage automatique de l'ennemi le plus proche, 14 mana.
 - Givre : attaque à distance qui immobilise une cible, 25 mana.
 - Onde : attaque de zone autour du mage, 38 mana.
+- Brume : nuage qui blesse et ralentit les ennemis proches pendant cinq secondes, 20 mana.
+- Foudre : éclairs qui frappent tous les ennemis alignés devant le mage, 30 mana.
+- Lumière : soin personnel de 35 points de vie, 15 mana.
 - 18 ennemis, santé, mana, délais entre les sorts et retour au refuge après une défaite.
 - Trois sanctuaires à trouver et à activer en approchant leur cristal. Leur activation restaure la vie et le mana.
 - Sauvegarde locale de la position, des sanctuaires et des ennemis vaincus toutes les cinq secondes, à l'activation d'un sanctuaire et lors du passage en arrière-plan.
@@ -30,7 +33,8 @@ compilé et le jeu n'a pas été exécuté sur iPhone ou simulateur. La premièr
 peut révéler des corrections à faire. Aucun IPA n'est fourni dans cette archive.
 
 Le projet cible iOS 16 minimum, iPhone ARM64 avec Metal. La compatibilité avec ta
-version exacte d'iOS, notamment une bêta, reste à tester avec un Xcode adapté.
+version exacte d'iOS, notamme
+nt une bêta, reste à tester avec un Xcode adapté.
 SceneKit est utilisé pour ce prototype compact ; son choix devra être réévalué
 pour une production à long terme. La cible de rendu est 30 images/s, sans garantie
 de performance avant mesure sur ton appareil. Les géométries simples, le nombre
@@ -60,7 +64,7 @@ pas un IPA utilisable sur un vrai appareil.
 
 ## Vérification après compilation
 
-1. Lancer en paysage : joystick, trois boutons et HUD doivent être visibles.
+1. Lancer en paysage : joystick, six boutons et HUD doivent être visibles.
 2. Marcher et tourner la caméra simultanément, approcher un arbre pour vérifier le blocage.
 3. Tester les trois sorts sur des ennemis ; vérifier mana, délais et dégâts.
 4. Activer les trois cristaux puis fermer et relancer : progression conservée.
@@ -68,5 +72,6 @@ pas un IPA utilisable sur un vrai appareil.
 6. Jouer dix minutes sur l'appareil cible et mesurer fluidité, chauffe et batterie.
 
 Les sources graphiques sont entièrement procédurales ; aucun fichier tiers ni
-aucune clé de service n'est nécessaire. Fichiers principaux : `Brumes/Game.swift`,
+aucune clé de service n'est nécessaire. Fichiers principaux : `Brumes/Game.sw
+ift`,
 `Brumes/Info.plist`, `Brumes/PrivacyInfo.xcprivacy` et `Brumes.xcodeproj`.
