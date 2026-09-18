@@ -16,7 +16,7 @@ import android.widget.TextView
 import kotlin.math.*
 
 internal data class GameStats(val life: Int=100, val mana: Int=100, val kills: Int=0, val wave: Int=1,
-    val shrineMask:Int=0, val guidance:String="Explore les trois sanctuaires", val remaining: Int=14, val ranks: List<Int> = listOf(1,1,1), val cooldowns: List<Float> = listOf(0f,0f,0f)) {
+    val shrineMask:Int=0, val guidance:String="Explore les trois sanctuaires", val remaining: Int=14, val ranks: List<Int> = listOf(1,1,1), val cooldowns: List<Float> = listOf(0f,0f,0f,0f,0f,0f)) {
     val points: Int get() = (kills/3-ranks.sum()+3).coerceAtLeast(0)
     val level: Int get() = 1+kills/3
 }
@@ -41,7 +41,8 @@ class GameActivity : Activity() {
     override fun onResume() { super.onResume(); game.onResume() }
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() { if(menu==null) openMenu() else closeMenu() }
-    override fun onCreate(savedInstanceState: Bundle?) {
+    o
+verride fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         root=FrameLayout(this); root.isMotionEventSplittingEnabled=true
@@ -49,11 +50,13 @@ class GameActivity : Activity() {
         val hud=label("BRUMES",13f).apply { background=panel() }
         root.addView(hud,FrameLayout.LayoutParams(dp(260),dp(82),Gravity.TOP or Gravity.START).apply { setMargins(dp(12),dp(10),0,0) })
         root.addView(button("☰  MENU") { openMenu() },FrameLayout.LayoutParams(dp(100),dp(48),Gravity.TOP or Gravity.END).apply { setMargins(0,dp(10),dp(12),0) })
-        val names=listOf("Flamme","Givre","Onde")
+        val names=listOf("Flamme","Givre","Onde","Brume","Foudre","Lumière")
         val spells=names.mapIndexed { i,name -> button(name) { game.cast(i) } }
-        val bar=LinearLayout(this).apply { gravity=Gravity.END; setPadding(0,0,dp(12),dp(12)) }
-        spells.forEach { bar.addView(it,LinearLayout.LayoutParams(dp(100),dp(64)).apply { setMargins(dp(8),0,0,0) }) }
-        root.addView(bar,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(82),Gravity.BOTTOM or Gravity.END))
+        val bar=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; gravity=Gravity.END; setPadding(0,0,dp(12),dp(12)) }
+        val rowTop=LinearLayout(this); val rowBottom=LinearLayout(this)
+        spells.forEachIndexed { i,b -> (if(i<3) rowBottom else rowTop).addView(b,LinearLayout.LayoutParams(dp(96),dp(58)).apply { setMargins(dp(6),0,0,0) }) }
+        bar.addView(rowTop); bar.addView(rowBottom)
+        root.addView(bar,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(140),Gravity.BOTTOM or Gravity.END))
         val objective=label("",12f)
         root.addView(objective,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(66),Gravity.TOP or Gravity.CENTER_HORIZONTAL))
         val pad=object:View(this) {
@@ -65,7 +68,8 @@ class GameActivity : Activity() {
                 canvas.drawCircle(width/2f,height/2f,r,paint);paint.style=android.graphics.Paint.Style.FILL
                 paint.color=0xCCD3B170.toInt();canvas.drawCircle(width/2f+dx*r,height/2f+dy*r,r*.28f,paint)
             }
-            override fun onTouchEvent(e:MotionEvent):Boolean {
+            
+override fun onTouchEvent(e:MotionEvent):Boolean {
                 when(e.actionMasked) {
                     MotionEvent.ACTION_DOWN,MotionEvent.ACTION_MOVE -> {
                         dx=(e.x-width/2f)/(width*.43f);dy=(e.y-height/2f)/(height*.43f)
@@ -81,8 +85,8 @@ class GameActivity : Activity() {
             hud.text="BRUMES 0.4  ·  Mage niveau ${s.level}\nVie ${s.life} / 100    Mana ${s.mana} / 100\n${s.points} point(s) de compétence"
             objective.text="${s.guidance}\n"+(if(s.remaining==0) "Vague terminée · Ouvre le menu" else "Vague ${s.wave} · ${s.remaining} ombres")
             spells.forEachIndexed { i,b ->
-                val cd=s.cooldowns[i]; val cost=listOf(14,25,38)[i]
-                b.text=if(cd>.05f) "${names[i]}\n${ceil(cd).toInt()} s" else "${names[i]}  ${s.ranks[i]}\n$cost mana"
+                val cd=s.cooldowns[i]; val cost=listOf(14,25,38,20,30,15)[i]
+                b.text=if(cd>.05f) "${names[i]}\n${ceil(cd).toInt()} s" else "${names[i]}  ${s.ranks.getOrElse(i){1}}\n$cost mana"
                 b.isEnabled=cd<=.05f && s.mana>=cost; b.alpha=if(b.isEnabled)1f else .48f
             }
         }
@@ -98,7 +102,8 @@ class GameActivity : Activity() {
         val body=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(dp(22),dp(16),dp(22),dp(16));background=panel() }
         val s=game.stats
         body.addView(label("B R U M E S",27f).apply { setTextColor(gold);gravity=Gravity.CENTER })
-        body.addView(label("LES TROIS SANCTUAIRES",12f).apply { gravity=Gravity.CENTER })
+      
+  body.addView(label("LES TROIS SANCTUAIRES",12f).apply { gravity=Gravity.CENTER })
         body.addView(label("Niveau ${s.level}  ·  ${s.kills} ombres vaincues  ·  ${s.points} point(s)\nUn point gagné toutes les 3 victoires. Rangs sauvegardés.",13f))
         body.addView(button("JOUER / REPRENDRE") { closeMenu() },LinearLayout.LayoutParams(-1,dp(48)))
         body.addView(button(if(game.detailed) "Graphismes : détaillés" else "Graphismes : équilibrés") {
@@ -117,7 +122,8 @@ class GameActivity : Activity() {
         body.addView(button("VAGUE SUIVANTE") { game.nextWave();closeMenu() }.apply { isEnabled=s.remaining==0;alpha=if(isEnabled)1f else .4f },LinearLayout.LayoutParams(-1,dp(48)))
         body.addView(label("Joystick à gauche pour marcher. Glisse sur le décor pour tourner la caméra. Sorts à droite.\nLe menu met le monde en pause. Les compétences sont conservées sur ce téléphone.",12f))
         scroll.addView(body);shade.addView(scroll,FrameLayout.LayoutParams(dp(560),-1,Gravity.CENTER))
-        root.addView(shade,FrameLayout.LayoutParams(-1,-1));menu=shade
+        root.addView(shade,FrameLayout.LayoutPar
+ams(-1,-1));menu=shade
     }
 }
 
@@ -145,7 +151,8 @@ class BrumesView(activity: Activity) : GLSurfaceView(activity) {
         when(e.actionMasked) {
             MotionEvent.ACTION_DOWN -> { lookX=e.x;lookY=e.y }
             MotionEvent.ACTION_MOVE -> {
-                val dx=(e.x-lookX)/resources.displayMetrics.density
+      
+          val dx=(e.x-lookX)/resources.displayMetrics.density
                 val dy=(e.y-lookY)/resources.displayMetrics.density
                 lookX=e.x;lookY=e.y;queueEvent { renderer.look(dx,dy) }
             }
@@ -178,7 +185,7 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
     private val hitColor=floatArrayOf(1f,.72f,.32f,1f)
     private val healthColor=floatArrayOf(.32f,.9f,.38f,1f)
     private val ranks=initial.ranks.toIntArray()
-    private val cooldowns=FloatArray(3)
+    private val cooldowns=FloatArray(6)
     private var uGlow=0;private var uKind=0;private var uTime=0;private var uShadows=0
     private val shadowPoints=FloatArray(24)
     private var yaw=0f;private var cameraHeight=6f
@@ -202,7 +209,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
     private val ground = run {
         val values=FloatArray(80*80*18);var i=0
         fun v(x:Float,z:Float) { values[i++]=x;values[i++]=heightAt(x,z);values[i++]=z }
-        for(z in 0 until 80) for(x in 0 until 80) {
+        for(z in 0 until 80) for(x in 0 u
+ntil 80) {
             val px=-100f+x*2.5f;val pz=-100f+z*2.5f
             v(px,pz);v(px,pz+2.5f);v(px+2.5f,pz+2.5f)
             v(px,pz);v(px+2.5f,pz+2.5f);v(px+2.5f,pz)
@@ -234,7 +242,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
         val values=ArrayList<Float>()
         for(i in 0 until 1200) {
             val x=sin(i*127.13f)*75f;val z=cos(i*71.71f)*75f
-            if(abs(x-sin(z*.085f)*5f)<2.8f)continue
+            if(
+abs(x-sin(z*.085f)*5f)<2.8f)continue
             val h=heightAt(x,z);val tall=.25f+(i%5)*.11f;val w=.16f
             values.addAll(listOf(x-w,h,z,x+w,h,z,x+.07f,h+tall,z, x,h,z-w,x,h,z+w,x+.07f,h+tall,z))
         };values.toFloatArray()
@@ -267,7 +276,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
             val nx=(heightAt(x-.1f,z)-heightAt(x+.1f,z))/.2f
             val nz=(heightAt(x,z-.1f)-heightAt(x,z+.1f))/.2f
             val length=sqrt(nx*nx+1f+nz*nz)
-            values[i]=nx/length;values[i+1]=1f/length;values[i+2]=nz/length
+            values[i]=nx/length;values[i+1]=1f/len
+gth;values[i+2]=nz/length
         };buffer(values)
     }
     private val earth = floatArrayOf(.23f,.29f,.16f,1f)
@@ -305,7 +315,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
                 vec2 cell=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
                 return mix(mix(hash(cell),hash(cell+vec2(1,0)),f.x),mix(hash(cell+vec2(0,1)),hash(cell+vec2(1,1)),f.x),f.y);
             }
-            float material(vec2 p) { return noise(p)*.57+noise(p*2.03)*.28+noise(p*4.07)*.15; }
+        
+    float material(vec2 p) { return noise(p)*.57+noise(p*2.03)*.28+noise(p*4.07)*.15; }
             void main() {
                 vec3 base=c.rgb;
 
@@ -338,7 +349,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
                 float fog=1.0-exp(-pow(distanceToEye*.012,2.0));
                 gl_FragColor=vec4(mix(lit,vec3(.31,.39,.43),clamp(fog,0.0,.97)),c.a);
             }
-        """.trimIndent()
+       
+ """.trimIndent()
         fun shader(type:Int, source:String) = GLES20.glCreateShader(type).also { GLES20.glShaderSource(it,source); GLES20.glCompileShader(it) }
         program = GLES20.glCreateProgram().also { GLES20.glAttachShader(it,shader(GLES20.GL_VERTEX_SHADER,vs)); GLES20.glAttachShader(it,shader(GLES20.GL_FRAGMENT_SHADER,fs)); GLES20.glLinkProgram(it) }
         loadTextures();uTexture=GLES20.glGetUniformLocation(program,"surfaceTexture");uDirt=GLES20.glGetUniformLocation(program,"dirtTexture");uTextured=GLES20.glGetUniformLocation(program,"textured")
@@ -354,7 +366,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
         val oldX=playerX;val oldZ=playerZ
         val mx=moveX*cos(yaw)+moveZ*sin(yaw);val mz=-moveX*sin(yaw)+moveZ*cos(yaw)
         playerX=(playerX+mx*dt*8).coerceIn(-82f,82f);playerZ=(playerZ+mz*dt*8).coerceIn(-82f,82f)
-        trees.forEach { t -> if(hypot(playerX-t[0],playerZ-t[1])<.55f+t[2]*.22f) { playerX=oldX;playerZ=oldZ } }
+        trees.forEach { t -> if(hypot(p
+layerX-t[0],playerZ-t[1])<.55f+t[2]*.22f) { playerX=oldX;playerZ=oldZ } }
         enemies.forEach { e -> e[4]=max(0f,e[4]-dt);e[5]=max(0f,e[5]-dt);e[6]=max(0f,e[6]-dt);if(e[2]>0) { val dx=playerX-e[0]; val dz=playerZ-e[1]; val d=max(.1f,sqrt(dx*dx+dz*dz)); e[3]=max(0f,e[3]-dt); if(d<26 && e[3]<=0f) { e[0]+=dx/d*dt*1.35f; e[1]+=dz/d*dt*1.35f }; if(d<1.7f && e[3]<=0f && e[6]<=0f) { life=max(0f,life-7f);e[6]=1.1f } } }
         if(life<=0) { playerX=if(checkpoint<0)0f else sin(checkpoint*2.09f)*53+4f;playerZ=if(checkpoint<0)0f else cos(checkpoint*2.09f)*53;life=100f;mana=100f;resetEnemies() }
         for(i in 0 until 3) {
@@ -378,7 +391,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
         GLES20.glUniform3f(uEye,eyeX,eyeY,eyeZ);GLES20.glUniform1f(uTime,elapsed)
         shadowPoints.fill(0f);shadowPoints[0]=playerX;shadowPoints[1]=playerZ;shadowPoints[2]=1f
         var shadowIndex=1
-        enemies.forEach { e -> if(e[2]>0 && shadowIndex<8 && hypot(e[0]-playerX,e[1]-playerZ)<24f) {
+       
+ enemies.forEach { e -> if(e[2]>0 && shadowIndex<8 && hypot(e[0]-playerX,e[1]-playerZ)<24f) {
             shadowPoints[shadowIndex*3]=e[0];shadowPoints[shadowIndex*3+1]=e[1];shadowPoints[shadowIndex*3+2]=.75f;shadowIndex++
         } }
         GLES20.glUniform3fv(uShadows,8,shadowPoints,0)
@@ -413,7 +427,8 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
             draw(orb,ob,x,.25f,z,.55f+(i%3)*.25f,.6f,.5f+(i%4)*.2f,stone)
         }
         val stride=sin(elapsed*9f)*min(1f,hypot(moveX,moveZ))*.25f
-        // Layered robe, articulated limbs and an emissive staff replace the block avatar.
+        // Layered robe, articulated limbs and an emissive s
+taff replace the block avatar.
         draw(orb,ob,playerX,.85f,playerZ,.58f,.88f,.44f,cloth)
         draw(orb,ob,playerX,1.55f,playerZ,.40f,.54f,.30f,cloth)
         draw(orb,ob,playerX,2.16f,playerZ,.31f,.35f,.31f,skin)
@@ -444,12 +459,13 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
         enemies.forEach { e -> if(e[5]>0f) {
             val progress=1f-e[5]/.7f
             for(i in 0 until 8) { val angle=i*PI.toFloat()/4
-                draw(orb,ob,e[0]+cos(angle)*progress,1f+progress*1.8f,e[1]+sin(angle)*progress,.09f,.09f,.09f,magic,1f)
+                draw(orb,ob,e[0]+cos(angle)*progress,1f+p
+rogress*1.8f,e[1]+sin(angle)*progress,.09f,.09f,.09f,magic,1f)
             }
         } }
         if(effect>0) {
             val radius=.8f+(1f-effect)*7f
-            val color=when(effectType){0->floatArrayOf(1f,.35f,.05f,1f);1->floatArrayOf(.2f,.85f,1f,1f);else->floatArrayOf(.75f,.3f,1f,1f)}
+            val color=when(effectType){0->floatArrayOf(1f,.35f,.05f,1f);1->floatArrayOf(.2f,.85f,1f,1f);3->floatArrayOf(.62f,.66f,.72f,1f);4->floatArrayOf(1f,.92f,.25f,1f);5->floatArrayOf(1f,.96f,.82f,1f);else->floatArrayOf(.75f,.3f,1f,1f)}
             for(i in 0 until 40) {
                 val a=i*.15708f
                 val size=.08f+effect*.12f
@@ -478,14 +494,20 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
         ranks[index]++;publish()
     }
     fun cast(type:Int) {
-        if(paused || type !in 0..2 || cooldowns[type]>0f)return
-        val cost=when(type){0->14f;1->25f;else->38f}
+        if(paused || type !in 0..5 || cooldowns[type]>0f)return
+        val cost=when(type){0->14f;1->25f;2->38f;3->20f;4->30f;else->15f}
         if(mana<cost)return
-        mana-=cost;effect=1f;effectType=type;cooldowns[type]=when(type){0->1f;1->4f;else->7f}
-        val range=if(type==2)8f else 18f
-        enemies.forEach { e -> if(e[2]>0 && hypot(e[0]-playerX,e[1]-playerZ)<range) {
-            e[2]-=(when(type){0->45f;1->30f;else->70f})+(ranks[type]-1)*10f
+        mana-=cost;effect=1f;effectType=type;cooldowns[type]=when(type){0->1f;1->4f;2->7f;3->4f;4->5f;else->3f}
+        if(type==5) { life=min(100f,life+35f);publish();return }
+        val range=when(type){2->8f;3->6f;else->18f}
+        val fwx=-sin(yaw); val fwz=-cos(yaw)
+        enemies.forEach { e -> if(e[2]>0) {
+            val ed=hypot(e[0]-playerX,e[1]-playerZ)
+            val hit=if(type==4) ed<20f && ed>.1f && ((e[0]-playerX)*fwx+(e[1]-playerZ)*fwz)/ed>.55f else ed<range
+            if(hit) {
+            e[2]-=(when(type){0->45f;1->30f;2->70f;3->15f;else->50f})+(if(type<3)(ranks[type]-1)*10f else 0f)
             if(type==1)e[3]=2f
+            if(type==3)e[3]=2.5f
             e[4]=.2f
             if(type==2) {
                 val distance=max(.1f,hypot(e[0]-playerX,e[1]-playerZ))
@@ -493,9 +515,9 @@ private class BrumesRenderer(initial:GameStats, private val assets:android.conte
                 e[1]=(e[1]+(e[1]-playerZ)/distance*1.8f).coerceIn(-82f,82f)
             }
             if(e[2]<=0) { kills++;e[5]=.7f }
-        } }
+            } } }
         publish()
     }
-    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,color:FloatArray,glow:Float=0f) { Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y+(if(vertices===ground || vertices===grass)0f else heightAt(x,z)),z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0);GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform3f(uScale,sx,sy,sz);val nb=if(vertices===ground)gn else if(vertices===grass)grn else if(vertices===foliage)fn else if(vertices===orb)on else cn;nb.position(0);GLES20.glVertexAttribPointer(aNormal,3,GLES20.GL_FLOAT,false,0,nb);GLES20.glEnableVertexAttribArray(aNormal);val textureIndex=if(vertices===ground)0 else if(color===stone)1 else if(color===bark)3 else if(color===cloth)4 else -1;GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textureIds[max(0,textureIndex)]);GLES20.glUniform1f(uTextured,if(textureIndex>=0)1f else 0f);GLES20.glUniform1f(uKind,if(vertices===ground)1f else if(vertices===grass || vertices===foliage)3f else 0f);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform4fv(uColor,1,color,0);buffer.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,0,buffer);GLES20.glEnableVertexAttribArray(aPos);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,vertices.size/3) }
-}
+    private fun draw(vertices:FloatArray, buffer:java.nio.FloatBuffer,x:Float,y:Float,z
 
+... [Content truncated]
