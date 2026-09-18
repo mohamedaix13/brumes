@@ -1,0 +1,445 @@
+package com.mumu.brumes
+
+import android.app.Activity
+import android.content.res.AssetManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.opengl.GLES20
+import android.opengl.GLSurfaceView
+import android.opengl.GLUtils
+import android.opengl.Matrix
+import android.os.Bundle
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
+import org.json.JSONObject
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
+import kotlin.math.*
+
+private data class V07Hud(
+    val life:Int,
+    val mana:Int,
+    val world:String,
+    val flying:Boolean,
+    val enemies:Int,
+    val spell:String
+)
+
+class GameActivityV07 : Activity() {
+    private lateinit var root:FrameLayout
+    private lateinit var game:BrumesV07View
+    private var menu:View?=null
+    private val gold=Color.rgb(228,196,126)
+    private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
+    private fun panel(alpha:Int=185)=android.graphics.drawable.GradientDrawable().apply{
+        setColor(Color.argb(alpha,7,11,16));cornerRadius=dp(13).toFloat();setStroke(dp(1),Color.argb(130,228,196,126))
+    }
+    private fun text(t:String,size:Float=11f)=TextView(this).apply{
+        this.text=t;textSize=size;setTextColor(Color.rgb(245,242,234));setPadding(dp(9),dp(5),dp(9),dp(5))
+    }
+    private fun button(t:String,w:Int=70,onClick:()->Unit)=Button(this).apply{
+        text=t;textSize=9.5f;isAllCaps=false;setTextColor(gold);backgroundTintList=null;background=panel(178)
+        setPadding(dp(3),0,dp(3),0);minWidth=0;minHeight=0;setOnClickListener{onClick()}
+        layoutParams=LinearLayout.LayoutParams(dp(w),dp(42))
+    }
+    override fun onCreate(savedInstanceState:Bundle?){
+ 
+       super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+        root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
+        game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
+
+        val hud=text("BRUMES 0.7",10.5f).apply{background=panel(178)}
+        root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
+        root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
+
+        val left=V07Stick(this){x,y->game.move(x,y)}
+        root.addView(left,FrameLayout.LayoutParams(dp(122),dp(122),Gravity.BOTTOM or Gravity.START).apply{setMargins(dp(10),0,0,dp(9))})
+        val right=V07Stick(this){x,y->game.look(x,y)}
+        root.addView(right,FrameLayout.LayoutParams(dp(108),dp(108),Gravity.BOTTOM or Gravity.END).apply{setMargins(0,0,dp(10),dp(9))})
+
+        val spells=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER}
+        spells.addView(button("🔥 Feu",66){game.element(0)})
+        spells.addView(button("💧 Eau",66){game.element(1)})
+        spells.addView(button("🌪 Air",66){game.element(2)})
+        spells.addView(button("🪨 Terre",66){game.element(3)})
+        spells.addView(button("⚡ Foudre",66){game.element(4)})
+        spells.addView(button("🌫 Brume",66){game.element(5)})
+        spells.addView(button("✨ Lumière",66){game.element(6)})
+        root.addView(spells,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(45),Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{setMargins(0,0,0,dp(8))})
+
+        val actions=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
+        actions.addView(button("✦ Esquive",78){game.dash
+()})
+        actions.addView(button("☁ Vol",78){game.flight()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
+        actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
+        root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
+
+        game.onHud={s->hud.text="BRUMES 0.7 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        setContentView(root)
+    }
+    override fun onPause(){game.onPause();super.onPause()}
+    override fun onResume(){super.onResume();game.onResume()}
+    @Deprecated("Deprecated in Java") override fun onBackPressed(){if(menu==null)openMenu() else closeMenu()}
+    private fun closeMenu(){menu?.let{root.removeView(it)};menu=null;game.setPaused(false)}
+    private fun openMenu(){
+        if(menu!=null)return
+        game.setPaused(true)
+        val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
+        val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
+        body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
+        body.addView(text("0.7 · textures Conquest actives · ciels HDR · cartes réintégrées",11f).apply{gravity=Gravity.CENTER})
+        body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
+        body.addView(text("Joystick gauche : déplacement. Droit : caméra et hauteur en vol. Deux éléments lancent une combinaison. Les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
+        shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
+        root.addView(shade,FrameLayout.L
+ayoutParams(-1,-1));menu=shade
+    }
+}
+
+private class V07Stick(activity:Activity,val out:(Float,Float)->Unit):View(activity){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG);private var dx=0f;private var dy=0f
+    override fun onDraw(c:Canvas){
+        val r=min(width,height)*.39f;p.style=Paint.Style.FILL;p.color=0x2410151B;c.drawCircle(width/2f,height/2f,r,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=2f;p.color=0x88E4C47E.toInt();c.drawCircle(width/2f,height/2f,r,p)
+        p.style=Paint.Style.FILL;p.color=0xA8E4C47E.toInt();c.drawCircle(width/2f+dx*r,height/2f+dy*r,r*.21f,p)
+    }
+    override fun onTouchEvent(e:MotionEvent):Boolean{
+        when(e.actionMasked){
+            MotionEvent.ACTION_DOWN,MotionEvent.ACTION_MOVE->{
+                dx=(e.x-width/2)/(width*.39f);dy=(e.y-height/2)/(height*.39f);val l=max(1f,hypot(dx,dy));dx/=l;dy/=l
+            }
+            else->{dx=0f;dy=0f}
+        }
+        out(dx,dy);invalidate();return true
+    }
+}
+
+private data class V07Obj(val x:Float,val y:Float,val z:Float,val sx:Float,val sy:Float,val sz:Float,val r:Float,val g:Float,val b:Float)
+private data class V07Mob(var x:Float,var z:Float,val friendly:Boolean,var phase:Float,var hp:Float=100f,var cooldown:Float=0f)
+private data class V07Spark(var x:Float,var y:Float,var z:Float,var vx:Float,var vy:Float,var vz:Float,var life:Float,val r:Float,val g:Float,val b:Float,val size:Float)
+
+private class BrumesV07View(activity:Activity):GLSurfaceView(activity){
+    internal var onHud:((V07Hud)->Unit)?=null
+    private val r=V07Renderer(activity.assets){h->post{onHud?.invoke(h)}}
+    init{setEGLContextClientVersion(2);setRenderer(r);renderMode=RENDERMODE_CONTINUOUSLY}
+    fun move(x:Float,y:Float){r.mx=x;r.my=y}
+    fun look(x:Float,y:Float){r.lx=x;r.ly=y}
+    fun element(i:Int){queueEvent{r.element(i)}}
+    fun dash(){queueEvent{r.dash()}}
+    fun flight(){queueEvent{r.toggleFlight()}}
+    fun fastTravel(){queueEvent{r.fastTravel()}}
+    fun setPaused(v:Boolean){queueEvent{r.paused=v}}
+    private var pinch=0f
+    override fun onTouchEvent(e:MotionEvent):Boolean{
+        if(e.pointerCount>=2){
+            val d=hypot(e.getX(0)-e.getX(1),e.getY(0)-e.getY(1));if(pinch>0)r.zoom((pinch-d)/230f);pinch=d
+        } else if(e.actionMasked==MotionEvent.ACTION_UP||e.actionMasked==MotionEvent.ACTION_CANCEL)pinch=0f
+        return true
+    
+}
+}
+
+private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hud)->Unit):GLSurfaceView.Renderer{
+    @Volatile var mx=0f;@Volatile var my=0f;@Volatile var lx=0f;@Volatile var ly=0f;@Volatile var paused=false
+    private var program=0
+    private var aPos=0;private var aNor=0;private var aUv=0
+    private var uMvp=0;private var uModel=0;private var uColor=0;private var uEye=0;private var uGlow=0;private var uFog=0;private var uFogColor=0;private var uUseTex=0;private var uSky=0;private var uTex=0
+    private val proj=FloatArray(16);private val view=FloatArray(16);private val vp=FloatArray(16);private val model=FloatArray(16);private val mvp=FloatArray(16)
+    private lateinit var cube:FloatBuffer;private var cubeCount=0
+    private lateinit var sphere:FloatBuffer;private var sphereCount=0
+    private val terrain=Array<FloatBuffer?>(3){null};private val terrainCount=IntArray(3)
+    private val maps=Array(3){mutableListOf<V07Obj>()};private val mapYOffset=FloatArray(3)
+    private val mobs=Array(3){mutableListOf<V07Mob>()};private val sparks=mutableListOf<V07Spark>()
+    private val names=arrayOf("Brumes","Cité d'Éther","Île Forêt")
+
+    private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
+    private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f
+    private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f
+    private val ruins=arrayOf(
+        arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
+        arrayOf(f
+loatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
+        arrayOf(floatArrayOf(-28f,-10f),floatArrayOf(12f,28f),floatArrayOf(34f,-22f))
+    )
+    private var ruinIndex=0
+
+    private fun fb(a:FloatArray)=ByteBuffer.allocateDirect(a.size*4).order(ByteOrder.nativeOrder()).asFloatBuffer().apply{put(a);position(0)}
+
+    private fun cubeMesh():FloatArray{
+        val o=ArrayList<Float>(288)
+        fun q(nx:Float,ny:Float,nz:Float,a:FloatArray,b:FloatArray,c:FloatArray,d:FloatArray){
+            val v=arrayOf(a,b,c,a,c,d);val uv=arrayOf(floatArrayOf(0f,1f),floatArrayOf(1f,1f),floatArrayOf(1f,0f),floatArrayOf(0f,1f),floatArrayOf(1f,0f),floatArrayOf(0f,0f))
+            for(i in v.indices){val p=v[i];o+=p[0];o+=p[1];o+=p[2];o+=nx;o+=ny;o+=nz;o+=uv[i][0];o+=uv[i][1]}
+        }
+        q(0f,0f,1f,floatArrayOf(-1f,-1f,1f),floatArrayOf(1f,-1f,1f),floatArrayOf(1f,1f,1f),floatArrayOf(-1f,1f,1f))
+        q(0f,0f,-1f,floatArrayOf(1f,-1f,-1f),floatArrayOf(-1f,-1f,-1f),floatArrayOf(-1f,1f,-1f),floatArrayOf(1f,1f,-1f))
+        q(1f,0f,0f,floatArrayOf(1f,-1f,1f),floatArrayOf(1f,-1f,-1f),floatArrayOf(1f,1f,-1f),floatArrayOf(1f,1f,1f))
+        q(-1f,0f,0f,floatArrayOf(-1f,-1f,-1f),floatArrayOf(-1f,-1f,1f),floatArrayOf(-1f,1f,1f),floatArrayOf(-1f,1f,-1f))
+        q(0f,1f,0f,floatArrayOf(-1f,1f,1f),floatArrayOf(1f,1f,1f),floatArrayOf(1f,1f,-1f),floatArrayOf(-1f,1f,-1f))
+        q(0f,-1f,0f,floatArrayOf(-1f,-1f,-1f),floatArrayOf(1f,-1f,-1f),floatArrayOf(1f,-1f,1f),floatArrayOf(-1f,-1f,1f))
+        return o.toFloatArray()
+    }
+
+    private fun sphereMesh(seg:Int=18,rings:Int=12):FloatArray{
+        val o=ArrayList<Float>()
+        fun p(th:Float,ph:Float):FloatArray{val y=sin(ph);val rr=cos(ph);return floatArrayOf(rr*cos(th),y,rr*sin(th))}
+        for(j in 0 until rings){
+            val p0=-PI.toFloat()/2+PI.toFloat()*j/rings;val p1=-PI.toFloat()/2+PI.toFloat()*(j+1)/rings
+            for(i in 0 until seg){
+                val t0=2*PI.toFloat()*i/seg;val t1=2*PI.toFloat()
+*(i+1)/seg
+                val a=p(t0,p0);val b=p(t1,p0);val c=p(t1,p1);val d=p(t0,p1)
+                val vv=arrayOf(a,b,c,a,c,d)
+                val uv=arrayOf(floatArrayOf(i.toFloat()/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-(j+1f)/rings),floatArrayOf(i.toFloat()/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-(j+1f)/rings),floatArrayOf(i.toFloat()/seg,1f-(j+1f)/rings))
+                for(k in vv.indices){val v=vv[k];o+=v[0];o+=v[1];o+=v[2];o+=v[0];o+=v[1];o+=v[2];o+=uv[k][0];o+=uv[k][1]}
+            }
+        }
+        return o.toFloatArray()
+    }
+
+    private fun ground(x:Float,z:Float,w:Int=world):Float{
+        return when(w){
+            0->sin(x*.065f)*1.05f+cos(z*.058f)*.72f+sin((x+z)*.032f)*.42f
+            1->sin(x*.045f+1.2f)*.34f+cos(z*.04f)*.28f
+            else->sin(x*.052f+2f)*.55f+cos(z*.049f-.8f)*.42f
+        }
+    }
+
+    private fun terrainMesh(w:Int):FloatArray{
+        val o=ArrayList<Float>();val n=32;val step=4.2f
+        fun v(x:Float,z:Float):FloatArray{
+            val y=ground(x,z,w);val e=.35f;val dx=ground(x+e,z,w)-ground(x-e,z,w);val dz=ground(x,z+e,w)-ground(x,z-e,w)
+            var nx=-dx;var ny=e*2;var nz=-dz;val l=max(.001f,sqrt(nx*nx+ny*ny+nz*nz));nx/=l;ny/=l;nz/=l
+            return floatArrayOf(x,y,z,nx,ny,nz,x*.105f,z*.105f)
+        }
+        for(iz in 0 until n){for(ix in 0 until n){
+            val x0=(ix-n/2)*step;val z0=(iz-n/2)*step;val x1=x0+step;val z1=z0+step
+            val a=v(x0,z0);val b=v(x1,z0);val c=v(x1,z1);val d=v(x0,z1);for(q in arrayOf(a,b,c,a,c,d))for(f in q)o+=f
+        }}
+        return o.toFloatArray()
+    }
+
+    private fun loadMap(name:String,w:Int){
+        try{
+            val text=assets.open(name).bufferedReader().use{it.readText()};val arr=JSONObject(text).getJSONArray("objects")
+            var minBase=Float.MAX_VALUE
+            for(i in 0 until arr.length()){
+                val a=arr.getJSONArray(i)
+                val o=V07Obj(a.getDouble(0).toFloat(),a.getDouble(1).toFloat(),a.getDouble(2).toFloat(),a.getDouble(3).toFloat()/2f,a.getDouble(4).toFloat()/2f,a.getDouble(5).toFloat()/2f,a.getInt(6)/255f,a.getInt(7)/255f,a.getInt(8)/255f)
+                maps[w]+=o;minBase=min(minBase,o.y-o.sy)
+            }
+            if(minBase<Float.MAX_VALUE)mapYOffset[w]=-minBase+.08f
+        }catch(_:Throwable){}
+    }
+
+    private fun loadAssetTexture(name:String,repeat:Boo
+lean=true):Int{
+        val bmp=assets.open(name).use{BitmapFactory.decodeStream(it)} ?: return 0
+        return uploadTexture(bmp,repeat)
+    }
+    private fun uploadTexture(bmp:Bitmap,repeat:Boolean):Int{
+        val ids=IntArray(1);GLES20.glGenTextures(1,ids,0);val id=ids[0]
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,id)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER,GLES20.GL_LINEAR_MIPMAP_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,if(repeat)GLES20.GL_REPEAT else GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,if(repeat)GLES20.GL_REPEAT else GLES20.GL_CLAMP_TO_EDGE)
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bmp,0);GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);bmp.recycle();return id
+    }
+
+    override fun onSurfaceCreated(gl:javax.microedition.khronos.opengles.GL10?,cfg:javax.microedition.khronos.egl.EGLConfig?){
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);GLES20.glEnable(GLES20.GL_BLEND);GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA,GLES20.GL_ONE_MINUS_SRC_ALPHA);GLES20.glEnable(GLES20.GL_CULL_FACE)
+        val vs="""attribute vec3 a;attribute vec3 n;attribute vec2 uv;uniform mat4 m;uniform mat4 model;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 wp=model*vec4(a,1.0);W=wp.xyz;N=normalize(n);T=uv;gl_Position=m*vec4(a,1.0);}"""
+        val fs="""precision mediump float;uniform vec4 c;uniform vec3 eye;uniform float glow;uniform float fog;uniform vec3 fogColor;uniform float useTex;uniform float sky;uniform sampler2D tex;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 tx=texture2D(tex,T);if(sky>0.5){gl_FragColor=vec4(tx.rgb*c.rgb,1.0);return;}vec3 base=c.rgb;if(useTex>0.5){base*=mix(vec3(1.0),tx.rgb*1.45,0.92);}float d=max(dot(normalize(N),normalize(vec3(-0.35,0.82,0.42))),0.0);vec3 col=base*(0.36+d*0
+.76)+base*glow*0.58;float f=1.0-exp(-pow(length(W-eye)*fog,2.0));gl_FragColor=vec4(mix(col,fogColor,clamp(f,0.0,0.84)),c.a*(useTex>0.5?tx.a:1.0));}"""
+        fun sh(type:Int,s:String)=GLES20.glCreateShader(type).also{GLES20.glShaderSource(it,s);GLES20.glCompileShader(it)}
+        val sv=sh(GLES20.GL_VERTEX_SHADER,vs);val sf=sh(GLES20.GL_FRAGMENT_SHADER,fs);program=GLES20.glCreateProgram();GLES20.glAttachShader(program,sv);GLES20.glAttachShader(program,sf);GLES20.glLinkProgram(program);GLES20.glUseProgram(program)
+        aPos=GLES20.glGetAttribLocation(program,"a");aNor=GLES20.glGetAttribLocation(program,"n");aUv=GLES20.glGetAttribLocation(program,"uv")
+        uMvp=GLES20.glGetUniformLocation(program,"m");uModel=GLES20.glGetUniformLocation(program,"model");uColor=GLES20.glGetUniformLocation(program,"c");uEye=GLES20.glGetUniformLocation(program,"eye");uGlow=GLES20.glGetUniformLocation(program,"glow");uFog=GLES20.glGetUniformLocation(program,"fog");uFogColor=GLES20.glGetUniformLocation(program,"fogColor");uUseTex=GLES20.glGetUniformLocation(program,"useTex");uSky=GLES20.glGetUniformLocation(program,"sky");uTex=GLES20.glGetUniformLocation(program,"tex")
+        val cm=cubeMesh();cube=fb(cm);cubeCount=cm.size/8;val sm=sphereMesh();sphere=fb(sm);sphereCount=sm.size/8
+        for(w in 0..2){val tm=terrainMesh(w);terrain[w]=fb(tm);terrainCount[w]=tm.size/8}
+        loadMap("world_aether.json",1);loadMap("world_forest.json",2)
+        texGrass=loadAssetTexture("grass_top.png");texDirt=loadAssetTexture("dirt.png");texStone=loadAssetTexture("stone.png");texLog=loadAssetTexture("log_oak.png");texLeaves=loadAssetTexture("cq_leaves.png");texMoss=loadAssetTexture("cq_moss.png");texCobble=loadAssetTexture("cq_cobble.png");texObsidian=loadAssetTexture("cq_obsidian.png");texBlue=loadAssetTexture("wool_colored_blue.png")
+        texSkyDay=loadAssetTexture("sky_day.jpg",false);texSkyNight=loadAssetTexture("sky_night.jpg",false)
+        seedMobs()
+    }
+
+    override fun onSurfaceCha
+nged(gl:javax.microedition.khronos.opengles.GL10?,w:Int,h:Int){
+        GLES20.glViewport(0,0,w,h);Matrix.perspectiveM(proj,0,58f,w.toFloat()/max(1,h),.12f,190f)
+    }
+
+    private fun seedMobs(){
+        val pos=arrayOf(arrayOf(floatArrayOf(-16f,-16f),floatArrayOf(16f,-18f),floatArrayOf(21f,13f),floatArrayOf(-22f,18f),floatArrayOf(4f,25f)),arrayOf(floatArrayOf(-18f,14f),floatArrayOf(18f,-14f),floatArrayOf(24f,18f),floatArrayOf(-25f,-18f),floatArrayOf(6f,28f)),arrayOf(floatArrayOf(-18f,-12f),floatArrayOf(18f,14f),floatArrayOf(26f,-16f),floatArrayOf(-24f,19f),floatArrayOf(8f,25f)))
+        for(w in 0..2){for(i in pos[w].indices){val p=pos[w][i];mobs[w]+=V07Mob(p[0],p[1],i==4,i*.9f)}}
+    }
+
+    fun zoom(v:Float){camZoom=(camZoom+v).coerceIn(6.5f,16f)}
+    fun toggleFlight(){flying=!flying;flyBoost=if(flying)7.5f else 0f;spell=if(flying)"Transplanage" else "Atterrissage";burst(px,py,pz,.12f,.12f,.16f,18)}
+    fun dash(){
+        val f=-my;val s=mx;var dx=sin(yaw)*f+cos(yaw)*s;var dz=-cos(yaw)*f+sin(yaw)*s
+        if(hypot(dx,dz)<.18f){dx=sin(yaw);dz=-cos(yaw)};val l=max(.01f,hypot(dx,dz));dx/=l;dz/=l
+        px=(px+dx*7.2f).coerceIn(-58f,58f);pz=(pz+dz*7.2f).coerceIn(-58f,58f);dashFx=.55f;burst(px,py,pz,.04f,.04f,.05f,24)
+    }
+    fun fastTravel(){val r=ruins[world][ruinIndex%3];px=r[0];pz=r[1];py=ground(px,pz)+1.3f;ruinIndex++;spell="Ruine ${ruinIndex%3+1}"}
+    fun element(i:Int){
+        val names=arrayOf("Feu","Eau","Air","Terre","Foudre","Brume","Lumière")
+        if(selected<0){selected=i;spell="${names[i]} prêt";return}
+        if(selected==i){spell=names[i];cast(i,i);selected=-1;return}
+        val a=min(selected,i);val b=max(selected,i)
+        spell=when(a*10+b){1->"Vapeur";2->"Tempête de braises";3->"Lave";12->"Givre";13->"Boue entravante";23->"Tempête de sable";4->"Orage de flammes";5->"Fumée aveuglante";6->"Aube ardente";14->"Tempête électrique";15->"Brume glacée";16->"Eau lumineuse";24->"Cyclone chargé";25->"Nuée cendreuse";26->"Rayon zénithal";34->"Séisme fulgurant";35->"Poussière voilée";36->"Éclat tellurique";45->"Brume électrisée";46->"Éclair sacré";56->"Voile radieux";else->"Arcane"}
+        cast(selected,i);selected=-1
+    }
+    private fun cast(a:Int,b:Int){
+        if(mana<8)return;mana=max(0f,mana-8f)
+        val col=when{a==0&&b==0->floatArrayOf(1f,.22f,.05f);a==1&&b==1->floatArrayOf(.08f,.55f,1f);a==2&&b==2->floatArrayOf(.72f,.85f,1f);a==3&&b==3->floatArrayOf(.7f,.48f,.25f);setOf(a,b)==setOf(0,3)->floatArrayOf(1f,.24f,.03f);setOf(a,b)==setOf(1,2)->floatArrayOf(.55f,.9f,1f);a==4&&b==4->floatArrayOf(1f,.92f,.2f);a==5&&b==5->floatArrayOf(.6f,.63f,.68f);a==6&&b==6->floatArrayOf(1f,.96f,.8f);else->floatArrayOf(.85f,.7f,.95f)}
+        burst(px+sin(yaw)*2f,py+.7f,pz-cos(yaw)*2f,col[0],col[1],col[2],36)
+        val foudre=(a==4||b==4);val brume=(a==5||b==5);val lumiere=(a==6||b==6)
+        for(m in mobs[world])if(!m.friendly){val d=hypot(m.x-px,m.z-pz)
+            val touch=if(foudre)d<20f&&d>.1f&&((m.x-px)*sin(yaw)-(m.z-pz)*cos(yaw))/d>.45f else d<8.5f
+            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f}}
+        if(lumiere)life=min(100f,life+18f)
+    }
+    private fun burst(x:Float,y:Float,z:Float,r:Float,g:Float,b:Float,count:Int){
+        repeat(count){val a=(it*2.399f+t);val sp=.8f+(it%5)*.18f;sparks+=V07Spark(x,y,z,cos(a)*sp,((it%7)-2)*.22f,sin(a)*sp,.65f+(it%4)*.08f,r,g,b,.07f+(it%3)*.025f)}
+        while(sparks.size>120)sparks.removeAt(0)
+    }
+
+    private fun update(dt:Float){
+        if(paused)return;t+=dt;portalCooldown=max(0f,portalCooldown-dt);spawnGrace=max(0f,spawnGrace-dt);mana=min(100f,mana+5.5f*dt)
+        yaw+=lx*1.85f*dt;pitch=(pitch-ly*.8f*dt).coerceIn(-.18f,.62f)
+        val f=-my;val s=mx;val dx=sin(yaw)*f+cos(yaw)*s;val dz=-cos(yaw)*f+sin(yaw)*s;val speed=if(flying)7.4f else 5.4f
+        px=(px+dx*speed*dt).coerceIn(-60f,60f);pz=(pz+dz*speed*dt).coerceIn(-60f,60f)
+        if(flying){flyBoost=max(0f,flyBoost-14f*dt);py+=( -ly*5.3f + flyBoost)*dt;py=py.coerceIn(1.1f,34f)}else py=ground(px,pz)+1.25f
+        if(dashFx>0)dashFx=max(0f,dashFx-dt)
+        val iter=sparks.iterator();while(iter.hasNext()){val s0=iter.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.vy+=.18f*dt;s0.life-=dt;if(s0.life<=0)iter.remove()}
+        for(m in mobs[world]){
+            if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=100f}
+            m.phase+=dt*(if(m.friendly).38f else .62f);m.cooldown=max(0f,m.cooldown-dt)
+            val d=hypot(px-m.x,pz-m.z)
+            if(!m.friendly&&d<10f&&spawnGrace<=0){val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*1.35f*dt;m.z+=uz*1.35f*dt;if(d<2.15f&&m.cooldown<=0){life-=3.5f;m.cooldown=1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7)}}
+            else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
+        }
+        if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;spell="Réapparition"}
+        chec
+kPortals()
+        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell))}
+    }
+
+    private fun checkPortals(){
+        if(portalCooldown>0)return
+        if(world==0){
+            if(hypot(px-24f,pz)<2.7f){world=1;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Cité d'Éther"}
+            else if(hypot(px+24f,pz)<2.7f){world=2;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Île Forêt"}
+        }else if(hypot(px,pz-18f)<2.8f){world=0;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Brumes"}
+    }
+
+    override fun onDrawFrame(gl:javax.microedition.khronos.opengles.GL10?){
+        val now=System.nanoTime();val dt=if(last==0L)0f else min(.033f,(now-last)/1_000_000_000f);last=now;update(dt)
+        val phase=(sin(t*.022f)+1f)*.5f;val night=phase<.22f
+        val clear=when(world){0->if(night)floatArrayOf(.025f,.045f,.085f) else floatArrayOf(.16f,.24f,.32f);1->if(night)floatArrayOf(.03f,.04f,.10f) else floatArrayOf(.18f,.25f,.36f);else->if(night)floatArrayOf(.02f,.055f,.065f) else floatArrayOf(.13f,.24f,.22f)}
+        GLES20.glClearColor(clear[0],clear[1],clear[2],1f);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT);GLES20.glUseProgram(program)
+        val eyeY=py+2.4f+sin(pitch)*3.2f;val ex=px-sin(yaw)*cos(pitch)*camZoom;val ez=pz+cos(yaw)*cos(pitch)*camZoom
+        Matrix.setLookAtM(view,0,ex,eyeY,ez,px,py+.75f,pz,0f,1f,0f);Matrix.multiplyMM(vp,0,proj,0,view,0)
+        GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).010f else .0085f)
+        val fc=when(world){0->floatArrayOf(.22f,.28f,.31f);1->floatArrayOf(.20f,.24f,.34f);else->floatArrayOf(.18f,.28f,.25f)};GLES20.glUniform3f(uFogColor,fc[0],fc[1],fc[2]);GLES20.glUniform1i(uTex,0)
+
+        drawSky(ex,eyeY,ez,if(night)texSkyNight else texSkyDay)
+        drawTerrain(
+)
+        if(world==0)drawMainScenery() else drawImportedMap(world)
+        drawRuins();drawPortals();drawMobs();drawPlayer();drawSparks()
+    }
+
+    private fun bindMesh(buf:FloatBuffer){
+        buf.position(0);GLES20.glVertexAttribPointer(aPos,3,GLES20.GL_FLOAT,false,32,buf);GLES20.glEnableVertexAttribArray(aPos)
+        buf.position(3);GLES20.glVertexAttribPointer(aNor,3,GLES20.GL_FLOAT,false,32,buf);GLES20.glEnableVertexAttribArray(aNor)
+        buf.position(6);GLES20.glVertexAttribPointer(aUv,2,GLES20.GL_FLOAT,false,32,buf);GLES20.glEnableVertexAttribArray(aUv)
+    }
+    private fun drawMesh(buf:FloatBuffer,count:Int,x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,r:Float,g:Float,b:Float,a:Float=1f,tex:Int=0,glow:Float=0f,sky:Float=0f){
+        Matrix.setIdentityM(model,0);Matrix.translateM(model,0,x,y,z);Matrix.scaleM(model,0,sx,sy,sz);Matrix.multiplyMM(mvp,0,vp,0,model,0)
+        GLES20.glUniformMatrix4fv(uMvp,1,false,mvp,0);GLES20.glUniformMatrix4fv(uModel,1,false,model,0);GLES20.glUniform4f(uColor,r,g,b,a);GLES20.glUniform1f(uGlow,glow);GLES20.glUniform1f(uUseTex,if(tex!=0)1f else 0f);GLES20.glUniform1f(uSky,sky)
+        if(tex!=0){GLES20.glActiveTexture(GLES20.GL_TEXTURE0);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,tex)}
+        bindMesh(buf);GLES20.glDrawArrays(GLES20.GL_TRIANGLES,0,count)
+    }
+    private fun box(x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(cube,cubeCount,x,y,z,sx,sy,sz,r,g,b,a,tex,glow,0f)
+    private fun sph(x:Float,y:Float,z:Float,s:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(sphere,sphereCount,x,y,z,s,s,s,r,g,b,a,tex,glow,0f)
+
+    private fun drawSky(ex:Float,ey:Float,ez:Float,tex:Int){
+        GLES20.glDepthMask(false);GLES20.glDisable(GLES20.GL_CULL_FACE)
+        drawMesh(sphere,sphereCount,ex,ey,ez,92f,92f,92f,1f,1f,1f,1f,tex,0f,1f)
+        GLES20.glEnable(GLES20.GL_CULL_FACE);GLES20.glDepthMask(true);GLES20.glUniform1f(uSky,0f)
+    }
+    private fun drawTerrain(){
+        val tint=when(world){0->floatArrayOf(.72f,.88f,.70f);1->floatArrayOf(.68f,.78f,.86f);else->floatArrayOf(.57f,.79f,.58f)}
+        val b=terrain[world]?:return;drawMesh(b,terrainCount[world],0f,0f,0f,1f,1f,1f,tint[0],tint[1],tint[2],1f,texGrass,0f,0f)
+    }
+    private fun drawMainScenery(){
+        val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatAr
+rayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
+        for((i,p) in trees.withIndex()){
+            val gy=ground(p[0],p[1]);val h=2.7f+(i%3)*.32f
+            box(p[0],gy+h*.55f,p[1],.34f,h*.55f,.34f,.82f,.72f,.58f,texLog)
+            sph(p[0],gy+h+1.05f,p[1],1.45f,.46f,.76f,.42f,texLeaves)
+            sph(p[0]-.85f,gy+h+.55f,p[1]+.15f,.92f,.38f,.68f,.35f,texLeaves)
+            sph(p[0]+.75f,gy+h+.68f,p[1]-.18f,.9f,.42f,.72f,.38f,texLeaves)
+        }
+        for(i in -7..7){val z=i*3.8f;val gy=ground(0f,z);box(0f,gy+.05f,z,1.25f,.10f,1.45f,.82f,.82f,.80f,texCobble)}
+        val rocks=arrayOf(floatArrayOf(-16f,8f),floatArrayOf(17f,7f),floatArrayOf(-13f,-15f),floatArrayOf(14f,-14f),floatArrayOf(-31f,-6f),floatArrayOf(29f,6f))
+        for((i,p) in rocks.withIndex()){val gy=ground(p[0],p[1]);box(p[0],gy+.45f,p[1],.65f+(i%2)*.3f,.45f,.8f,.72f,.74f,.72f,texMoss)}
+    }
+    private fun drawImportedMap(w:Int){
+        for(o in maps[w]){
+            val y=o.y+mapYOffset[w];val tex=when{(o.b>o.r*1.15f&&o.b>o.g*.95f)->texBlue;(o.g>o.r*1.20f&&o.g>o.b*1.05f)->texLeaves;(o.r>.42f&&o.g>.22f&&o.g<o.r*.82f)->texLog;(o.r<.28f&&o.g<.28f&&o.b<.34f)->texObsidian;else->if(w==2)texMoss else texStone}
+            val rr=(.55f+o.r*.55f).coerceIn(.42f,1.05f);val gg=(.55f+o.g*.55f).coerceIn(.42f,1.05f);val bb=(.55f+o.b*.55f).coerceIn(.42f,1.05f)
+            box(o.x,y,o.z,max(.12f,o.sx),max(.12f,o.sy),max(.12f,o.sz),rr,gg,bb,tex)
+        }
+        if(w==2){
+            val extra=arrayOf(floatArrayOf(-20f,-20f),floatArrayOf(-30f,10f),floatArrayOf(22f,-24f),floatArrayOf(30f,16f))
+            for(p in extra){val gy=ground(p[0],p[1],w);box(p[0],gy+1.3f,p[1],.28f,1.3f,.28f,.78f,.67f,.52f,texLog);sph(p[0],gy+3.2f,p[1],1.3f,.38f,.68f,.34f,texLeaves)}
+        }
+    }
+    private fun drawRuins(){
+        for((ri,r) in ruins[world].withIndex()){
+            va
+l gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
+            for(k in 0 until 8){val a=k*PI.toFloat()/4f;box(r[0]+cos(a)*2.05f,gy+.18f,r[1]+sin(a)*2.05f,.42f,.16f,.72f,.78f,.82f,.84f,texMoss,pulse)}
+            box(r[0],gy+.06f,r[1],1.15f,.07f,1.15f,.30f,.72f,1f,texBlue,.72f)
+        }
+    }
+    private fun drawPortals(){
+        fun portal(x:Float,z:Float,r:Float,g:Float,b:Float){
+            val gy=ground(x,z);box(x-1.55f,gy+1.65f,z,.34f,1.65f,.45f,.72f,.74f,.78f,texCobble);box(x+1.55f,gy+1.65f,z,.34f,1.65f,.45f,.72f,.74f,.78f,texCobble);box(x,gy+3.15f,z,1.9f,.30f,.45f,.72f,.74f,.78f,texCobble)
+            box(x,gy+1.65f,z,.06f,1.35f,1.25f,r,g,b,texObsidian,.95f,.82f)
+            for(k in 0 until 6){val a=t*1.5f+k*PI.toFloat()/3f;sph(x+cos(a)*1.25f,gy+1.65f+sin(a*.7f)*.9f,z+.18f,.08f,r,g,b,0,1f)}
+        }
+        if(world==0){portal(24f,0f,.25f,.66f,1f);portal(-24f,0f,.72f,.35f,1f)}else portal(0f,18f,.35f,.75f,1f)
+    }
+    private fun drawHumanoid(x:Float,z:Float,friendly:Boolean,player:Boolean=false){
+        val gy=if(player)py else ground(x,z)+1.05f;val body=if(player)floatArrayOf(.22f,.28f,.34f) else if(friendly)floatArrayOf(.18f,.42f,.34f) else floatArrayOf(.48f,.08f,.08f)
+        box(x,gy,z,.36f,.78f,.25f,body[0],body[1],body[2],if(player)texStone else 0)
+        sph(x,gy+1.08f,z,.34f,.84f,.70f,.58f,0)
+        box(x-.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x+.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x-.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0);box(x+.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0)
+    }
+    private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly)}
+    private fun drawPlayer(){drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
+    private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,
+(s.life/.8f).coerceIn(0f,1f))}
+
+}
