@@ -1,42 +1,47 @@
 # Projet Brumes — Les trois sanctuaires
 
-RPG d'action 3D natif pour iPhone (Swift + SceneKit), en français.
+RPG d'action 3D natif, en français. **Deux cibles : Android (principale) et iPhone.**
 
-**Démarré le :** 13/09/2026 · **Statut :** Développement en cours · **Version :** 0.2
-
-***
-
-## ✨ Fonctionnalités
-
-*   **Six sorts jouables** : Feu (projectile rapide, 14 mana), Givre (immobilise, 25 mana), Onde (zone, 38 mana), Brume (ralentit, 20 mana), Foudre (frappe en ligne, 30 mana), Lumière (soin +35 PV, 15 mana)
-*   Monde ouvert : vallée de 170 × 170 m, arbres, rochers, ruines et montagnes
-*   18 ennemis avec poursuite, gel et ralentissement
-*   Trois sanctuaires à éveiller (restaurent vie et mana)
-*   Sauvegarde locale automatique (position, progression, ennemis vaincus)
-*   Effets de particules, halos lumineux, éclairs et brume
+**Démarré le :** 13/09/2026 · **Statut :** Développement en cours · **Version :** 0.7 (Android) / 0.2 (iOS)
 
 ***
 
-## 📱 Niveaux graphiques
+## 🤖 Android (version principale — V07)
 
-*   **Faible :** 720p (pour mobiles bas de gamme)
-*   **Moyen :** 1080p
-*   **Ultra :** 1440p/4K
+Application Kotlin + OpenGL ES 2.0, sans moteur externe, sans dépendance à télécharger.
+
+*   **Trois mondes** : Brumes, Cité d'Éther, Île Forêt (portails entre les mondes)
+*   **Sept éléments combinables** : 🔥 Feu, 💧 Eau, 🌪 Air, 🪨 Terre, ⚡ Foudre, 🌫 Brume, ✨ Lumière
+*   **21 combinaisons de sorts** : Vapeur, Givre, Lave, Orage de flammes, Brume glacée, Éclair sacré…
+*   Effets distincts : la **Foudre** frappe en cône devant le mage, la **Brume** entrave les ennemis, la **Lumière** soigne
+*   Vol, dash, voyage rapide, mobs par monde, HUD complet
+*   Textures procédurales embarquées (herbe, pierre, terre, bois)
+
+### Compiler l'APK
+
+```bash
+cd AndroidBrumes
+gradle assembleDebug
+```
+
+Le résultat est `app/build/outputs/apk/debug/app-debug.apk` (minSdk 26, targetSdk 35).
+
+***
+
+## 🍎 iPhone (version 0.2)
+
+Swift + SceneKit, même vallée, six sorts : Feu, Givre, Onde, Brume, Foudre, Lumière.
+Voir `LISEZ-MOI.md` pour produire l'IPA à signer (Xcode requis).
 
 ***
 
 ## 🚀 Prochaines étapes
 
-1.  Compilation et test sur iPhone (Xcode requis)
-2.  Équilibrage des six sorts
-3.  Deuxième biome (Montagnes de Glace)
-4.  Sons immersifs
+1.  Compiler et tester l'APK Android sur appareil
+2.  Équilibrage des 7 éléments et 21 combinaisons
+3.  Sons immersifs
+4.  Compilation iOS via Xcode
 
 ***
-
-## 🔨 Compiler
-
-Ouvrir `Brumes.xcodeproj` dans Xcode, choisir le schéma Brumes, puis Run.
-Voir `LISEZ-MOI.md` pour produire un IPA à signer.
 
 **Dépôt :** Brumes
