@@ -9,7 +9,8 @@ import java.io.PrintWriter
 /**
  * Pont vers le véritable moteur Codex (open source, Apache-2.0, github.com/openai/codex).
  * Le binaire Rust cross-compilé pour Android ARM64 est embarqué sous le nom
- * "libcodex.so" (jniLibs) et exécuté en mode app-server (JSON-RPC sur stdio).
+ * "libcodex.so" (jniLibs) et exécuté en mode app-server (JSON-RPC sur stdio),
+ * conformément au protocole documenté dans codex-rs/app-server-protocol.
  */
 class CodexProcess(
     private val ctx: Context,

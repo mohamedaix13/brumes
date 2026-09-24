@@ -13,8 +13,8 @@ class ProjectStore(private val ctx: Context) {
 
     fun create(name: String): Project {
         val id = System.currentTimeMillis().toString()
-        val pdir = File(dir, "${name.replace(Regex("[^A-Za-z0-9_-]"), "_")}_$id").apply { mkdirs() }
-        File(pdir, "README.md").writeText("# $name\n\nProjet créé avec NexaDev.\n")
+        val pdir = File(dir, name.replace(Regex("[^A-Za-z0-9_-]"), "_") + "_" + id).apply { mkdirs() }
+        File(pdir, "README.md").writeText("# " + name + "\n\nProjet créé avec NexaDev.\n")
         val p = Project(id, name, pdir.absolutePath, System.currentTimeMillis())
         save(p); return p
     }
@@ -39,13 +39,13 @@ class ProjectStore(private val ctx: Context) {
 
     /** Historique d'une session (JSONL), utilisé pour la reprise et la recherche. */
     fun appendHistory(projectId: String, entry: JSONObject) {
-        val f = File(dir, "history_$projectId.jsonl")
+        val f = File(dir, "history_" + projectId + ".jsonl")
         entry.put("ts", System.currentTimeMillis())
         f.appendText(entry.toString() + "\n")
     }
 
     fun loadHistory(projectId: String): List<JSONObject> {
-        val f = File(dir, "history_$projectId.jsonl")
+        val f = File(dir, "history_" + projectId + ".jsonl")
         if (!f.exists()) return emptyList()
         return f.readLines().filter { it.isNotBlank() }.map { JSONObject(it) }
     }

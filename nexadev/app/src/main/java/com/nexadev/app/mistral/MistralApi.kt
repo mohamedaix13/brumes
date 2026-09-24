@@ -20,9 +20,9 @@ object MistralApi {
     /** Vérifie la clé et retourne la liste des modèles autorisés par cette clé. */
     fun listModels(apiKey: String): List<String> {
         val req = Request.Builder().url("$BASE/models")
-            .header("Authorization", "Bearer $apiKey").build()
+            .header("Authorization", "Bearer " + apiKey).build()
         http.newCall(req).execute().use { resp ->
-            check(resp.isSuccessful) { "Clé Mistral invalide (HTTP ${resp.code})" }
+            check(resp.isSuccessful) { "Clé Mistral invalide (HTTP " + resp.code + ")" }
             val data = JSONObject(resp.body!!.string()).getJSONArray("data")
             return (0 until data.length()).map { data.getJSONObject(it).getString("id") }.sorted()
         }
@@ -38,11 +38,11 @@ object MistralApi {
             .put("temperature", temperature)
         if (tools != null) body.put("tools", JSONArray(tools))
         val req = Request.Builder().url("$BASE/chat/completions")
-            .header("Authorization", "Bearer $apiKey")
+            .header("Authorization", "Bearer " + apiKey)
             .post(body.toString().toRequestBody(JSON)).build()
         http.newCall(req).execute().use { resp ->
             val txt = resp.body!!.string()
-            check(resp.isSuccessful) { "Mistral HTTP ${resp.code}: ${txt.take(400)}" }
+            check(resp.isSuccessful) { "Mistral HTTP " + resp.code + ": " + txt.take(400) }
             return JSONObject(txt)
         }
     }
