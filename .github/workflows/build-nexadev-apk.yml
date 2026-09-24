@@ -24,8 +24,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK manually (cmdline-tools + platform 34)
+        run: |
+          export ANDROID_HOME=$HOME/android-sdk
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          curl -sL -o tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q tools.zip
+          mv cmdline-tools latest
+          rm tools.zip
+          yes | latest/bin/sdkmanager --licenses > /dev/null
+          latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
 
       - name: Set up Rust with aarch64-linux-android target
         uses: dtolnay/rust-toolchain@stable
@@ -34,7 +44,7 @@ jobs:
 
       - name: Install NDK and set linker env
         run: |
-          yes | sdkmanager "ndk;27.0.12077973" > /dev/null
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973" > /dev/null
           TOOLCHAIN="$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "CC_aarch64_linux_android=$TOOLCHAIN/aarch64-linux-android34-clang" >> $GITHUB_ENV
           echo "AR_aarch64_linux_android=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
