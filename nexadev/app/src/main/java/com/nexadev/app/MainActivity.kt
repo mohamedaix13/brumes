@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nexadev.app.agent.FallbackAgent
+import com.nexadev.app.builder.AndroidBuilder
 import com.nexadev.app.codex.CodexProcess
 import com.nexadev.app.fs.ProjectStore
 import com.nexadev.app.mistral.MistralApi
@@ -98,7 +99,7 @@ fun LoginScreen(apiKey: String, models: List<String>, model: String,
         Text(status, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(24.dp))
         TextButton(onClick = onDone) { Text("Continuer sans IA (fonctions locales uniquement)") }
-        Text("Aucune requête n'est envoyée à OpenAI. La clé reste sur votre appareil.",
+        Text("Aucune requête n est envoyée à OpenAI. La clé reste sur votre appareil.",
             style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -144,10 +145,12 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
     var prompt by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var pendingWrite by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var buildRequest by remember { mutableStateOf("") }
+    var building by remember { mutableStateOf(false) }
     val root = File(project.path)
     val scope = rememberCoroutineScope()
     val codex = remember { CodexProcess(ctx, root, apiKey, model) }
-    fun refresh() { files.value = root.walkTopDown().filter { it.isFile }.take(200).toList() }
+    fun refresh() { files.value = root.walkTopDown().filter { it.isFile }.take(500).toList() }
 
     LaunchedEffect(Unit) { refresh() }
     Scaffold(
@@ -161,6 +164,7 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                 NavigationBarItem(selected = tab == 0, onClick = { tab = 0 }, icon = { Text("📁") }, label = { Text("Fichiers") })
                 NavigationBarItem(selected = tab == 1, onClick = { tab = 1 }, icon = { Text("🤖") }, label = { Text("Agent") })
                 NavigationBarItem(selected = tab == 2, onClick = { tab = 2 }, icon = { Text("💻") }, label = { Text("Terminal") })
+                NavigationBarItem(selected = tab == 3, onClick = { tab = 3 }, icon = { Text("🏗️") }, label = { Text("Builder") })
             }
         }
     ) { pad ->
@@ -203,10 +207,7 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                             busy = true; val req = prompt; prompt = ""
                             scope.launch(Dispatchers.IO) {
                                 val agent = FallbackAgent(root, apiKey, model) { path, content ->
-                                    withContext(Dispatchers.Main) {
-                                        pendingWrite = path to content
-                                        true
-                                    }
+                                    withContext(Dispatchers.Main) { pendingWrite = path to content; true }
                                 }
                                 val result = try { agent.run(req) { l -> scope.launch { logs.add(l) } } }
                                 catch (e: Exception) { "Erreur : " + e.message }
@@ -216,6 +217,33 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                     }
                 }
                 2 -> TerminalScreen(root, logs)
+                3 -> Column(Modifier.fillMaxSize().padding(8.dp)) {
+                    Text("Builder — crée une application Android depuis une demande", style = MaterialTheme.typography.titleSmall)
+                    LazyColumn(Modifier.weight(1f)) { items(logs) { l -> Text(l, style = MaterialTheme.typography.bodySmall) } }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(buildRequest, { buildRequest = it },
+                            label = { Text("Ex : une app qui classe mes documents…") }, modifier = Modifier.weight(1f))
+                        Button(enabled = !building && buildRequest.isNotBlank() && apiKey.isNotBlank(), onClick = {
+                            building = true
+                            val req = buildRequest; buildRequest = ""
+                            scope.launch(Dispatchers.IO) {
+                                val b = AndroidBuilder(apiKey, model)
+                                try {
+                                    val plan = b.generate(req) { p -> scope.launch { logs.add(p) } }
+                                    val outDir = File(root, "generated-" + plan.optString("name", "app").replace(Regex("[^A-Za-z0-9]"), "-").lowercase())
+                                    outDir.mkdirs()
+                                    val written = b.materialize(outDir, plan) { p -> scope.launch { logs.add(p) } }
+                                    withContext(Dispatchers.Main) {
+                                        logs.add("🏗️ Projet généré : " + plan.optString("name") + " — " + written.size + " fichiers dans " + outDir.name)
+                                        building = false; refresh()
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) { logs.add("Erreur Builder : " + e.message); building = false } }
+                            }
+                        }) { Text(if (building) "…" else "Générer") }
+                    }
+                    if (apiKey.isBlank()) Text("Ajoutez votre clé Mistral pour utiliser le Builder.", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
     }
