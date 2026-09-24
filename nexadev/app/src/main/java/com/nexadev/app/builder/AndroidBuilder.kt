@@ -4,21 +4,15 @@ import com.nexadev.app.mistral.MistralApi
 import org.json.JSONObject
 import java.io.File
 
-/**
- * Builder : genere un projet Android complet a partir d'une demande en langage naturel,
- * comme sur Codex/Astra desktop. Le modele Mistral produit un plan puis les fichiers ;
- * chaque fichier ecrit est reel et verifie sur le disque.
- */
-class AndroidBuilder(
-    private val apiKey: String,
-    private val model: String
-) {
+/** Genere un projet Android complet a partir d'une demande en langage naturel. */
+class AndroidBuilder(private val apiKey: String, private val model: String) {
+
     /** Le modele retourne un JSON {name, description, files:[{path,content}]}. */
     fun generate(userRequest: String, onProgress: (String) -> Unit): JSONObject {
         onProgress("Planification du projet avec " + model + "...")
         val system = "Tu es un generateur d'applications Android. Reponds UNIQUEMENT avec un JSON valide, " +
             "sans markdown, de la forme : " +
-            "{"name":"NomApp","description":"...","files":[{"path":"chemin","content":"contenu"}]}" +
+            '''{"name":"NomApp","description":"...","files":[{"path":"chemin","content":"contenu"}]}''' +
             ". Genere un projet Android minimal mais complet et compilable avec Gradle (Kotlin + Compose) : " +
             "settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, gradle.properties avec " +
             "android.useAndroidX=true, AndroidManifest.xml, MainActivity.kt (package com.exemple.generated), " +
@@ -26,7 +20,7 @@ class AndroidBuilder(
         val resp = MistralApi.chat(apiKey, model, listOf("system" to system, "user" to userRequest), temperature = 0.3)
         val content = resp.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
         var cleaned = content.trim()
-        if (cleaned.startsWith("`json")) cleaned = cleaned.removePrefix("`json").trim()
+        if (cleaned.startsWith("`json`")) cleaned = cleaned.removePrefix("`json`").trim()
         if (cleaned.startsWith("`")) cleaned = cleaned.removePrefix("`").trim()
         if (cleaned.endsWith("`")) cleaned = cleaned.removeSuffix("`").trim()
         val start = cleaned.indexOf("{")
