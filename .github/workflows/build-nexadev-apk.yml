@@ -11,6 +11,9 @@ jobs:
     permissions:
       contents: write
       issues: write
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout host repo
         uses: actions/checkout@v4
@@ -27,18 +30,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK manually (cmdline-tools + platform 34)
+      - name: SDK preinstalle : licences + platform-34 + build-tools 34
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          cd $ANDROID_HOME/cmdline-tools
-          curl -sL -o tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q tools.zip
-          mv cmdline-tools latest
-          rm tools.zip
-          yes | latest/bin/sdkmanager --licenses > /dev/null
-          latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
 
       - name: Set up Rust with aarch64-linux-android target
         uses: dtolnay/rust-toolchain@stable
