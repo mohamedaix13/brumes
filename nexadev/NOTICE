@@ -1,0 +1,10 @@
+NexaDev
+Copyright 2026 Mohamed Ouchnak
+
+This product includes software developed as part of OpenAI's open-source "Codex"
+project (https://github.com/openai/codex), licensed under the Apache License,
+Version 2.0. The Rust `codex` binary is cross-compiled unmodified for
+Android ARM64 and embedded as libcodex.so.
+
+This product is not affiliated with, endorsed by, or sponsored by OpenAI.
+Mistral and related marks are trademarks of Mistral AI.
