@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     steps:
       - name: Checkout host repo
         uses: actions/checkout@v4
@@ -20,11 +23,9 @@ jobs:
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+        with: { distribution: temurin, java-version: '17' }
 
-      - name: Install Android SDK manually (cmdline-tools + platform 34)
+      - name: Install Android SDK manually
         run: |
           export ANDROID_HOME=$HOME/android-sdk
           mkdir -p $ANDROID_HOME/cmdline-tools
@@ -39,8 +40,7 @@ jobs:
 
       - name: Set up Rust with aarch64-linux-android target
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
+        with: { targets: aarch64-linux-android }
 
       - name: Install NDK and set linker env
         run: |
@@ -53,27 +53,44 @@ jobs:
       - name: Build the real Codex CLI for Android ARM64
         run: |
           cd upstream-codex/codex-rs
-          cargo build --release --target aarch64-linux-android -p codex-cli || \
-            cargo build --release --target aarch64-linux-android -p codex
+          (cargo build --release --target aarch64-linux-android -p codex-cli 2>&1 || cargo build --release --target aarch64-linux-android -p codex 2>&1) | tee /tmp/rust-build.log
 
-      - name: Embed Codex binary into the app (libcodex.so convention)
+      - name: Report failure in an issue (autonomous loop)
+        if: failure()
+        run: |
+          if [ -f /tmp/rust-build.log ]; then
+            ERR=$(tail -n 100 /tmp/rust-build.log)
+          else
+            ERR="failure before rust build (see logs)"
+          fi
+          gh issue create --title "CI build failure ${{ github.run_id }}" --body "Auto-reported error:
+
+          ${ERR}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Embed Codex binary into the app
         run: |
           mkdir -p nexadev/app/src/main/jniLibs/arm64-v8a
-          cp upstream-codex/codex-rs/target/aarch64-linux-android/release/codex \
-             nexadev/app/src/main/jniLibs/arm64-v8a/libcodex.so
+          cp upstream-codex/codex-rs/target/aarch64-linux-android/release/codex nexadev/app/src/main/jniLibs/arm64-v8a/libcodex.so
 
       - name: Build APK with Gradle
         run: |
           curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q /tmp/gradle.zip -d /tmp
           cd nexadev
-          /tmp/gradle-8.7/bin/gradle assembleDebug --no-daemon
+          /tmp/gradle-8.7/bin/gradle assembleDebug --no-daemon 2>&1 | tee /tmp/gradle.log
+
+      - name: Report gradle failure in an issue
+        if: failure()
+        run: |
+          gh issue create --title "CI gradle failure ${{ github.run_id }}" --body "$(tail -n 100 /tmp/gradle.log)" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
-        with:
-          name: NexaDev-APK
-          path: nexadev/app/build/outputs/apk/debug/app-debug.apk
+        with: { name: NexaDev-APK, path: nexadev/app/build/outputs/apk/debug/app-debug.apk }
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
