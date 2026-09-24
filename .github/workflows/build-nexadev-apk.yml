@@ -1,4 +1,137 @@
-      - name: SDK preinstalle - licences + platform-34 + build-tools 34
+name: Build NexaDev APK (Codex engine + Mistral)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - name: Checkout host repo
+        uses: actions/checkout@v4
+
+      - name: Checkout the real OpenAI Codex source (Apache-2.0)
+        uses: actions/checkout@v4
+        with:
+          repository: openai/codex
+          path: upstream-codex
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: SDK preinstalle - licences et platform-34
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+
+      - name: Set up Rust with aarch64-linux-android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install NDK and set linker env
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973" > /dev/null
+          TOOLCHAIN="$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          echo "CC_aarch64_linux_android=$TOOLCHAIN/aarch64-linux-android34-clang" >> $GITHUB_ENV
+          echo "AR_aarch64_linux_android=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/aarch64-linux-android34-clang" >> $GITHUB_ENV
+
+      - name: Build the real Codex CLI for Android ARM64 (non bloquant)
+        id: rust
+        continue-on-error: true
+        run: |
+          cd upstream-codex/codex-rs
+          PKG=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | python3 -c "
+          import json,sys
+          m=json.load(sys.stdin)
+          names=[p['name'] for p in m['packages']]
+          for c in ['codex-cli','codex','cli']:
+              if c in names:
+                  print(c); break
+          else:
+              print('codex')
+          ")
+          echo "Building package: $PKG"
+          cargo build --release --target aarch64-linux-android -p "$PKG" 2>&1 | tee /tmp/rust-build.log
+          BIN="target/aarch64-linux-android/release/$PKG"
+          [ -f "$BIN" ] || BIN="target/aarch64-linux-android/release/codex"
+          if [ -f "$BIN" ]; then
+            echo "binary=$BIN" >> $GITHUB_OUTPUT
+            mkdir -p $GITHUB_WORKSPACE/nexadev/app/src/main/jniLibs/arm64-v8a
+            cp "$BIN" $GITHUB_WORKSPACE/nexadev/app/src/main/jniLibs/arm64-v8a/libcodex.so
+            echo "ENGINE=ok" >> $GITHUB_ENV
+          else
+            echo "ENGINE=absent" >> $GITHUB_ENV
+          fi
+
+      - name: Diagnostics Rust (resume public du build)
+        if: steps.rust.outcome == 'failure'
+        run: |
+          echo "## Erreurs de compilation Rust (moteur Codex)" >> $GITHUB_STEP_SUMMARY
+          echo '~~~' >> $GITHUB_STEP_SUMMARY
+          grep -E "^error" -A 3 /tmp/rust-build.log | head -60 >> $GITHUB_STEP_SUMMARY || echo "(voir logs complets)" >> $GITHUB_STEP_SUMMARY
+          echo '~~~' >> $GITHUB_STEP_SUMMARY
+          echo "L'APK est quand meme construit avec l'agent integre Kotlin/Mistral." >> $GITHUB_STEP_SUMMARY
+
+      - name: Build APK with Gradle
+        id: gradle
+        run: |
+          curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          cd nexadev
+          set +e
+          /tmp/gradle-8.7/bin/gradle assembleDebug --no-daemon > /tmp/gradle.log 2>&1
+          CODE=$?
+          tail -200 /tmp/gradle.log
+          echo "exitcode=$CODE" >> $GITHUB_OUTPUT
+          exit $CODE
+
+      - name: Rapport public d'erreur Gradle (issue GitHub)
+        if: failure() && steps.gradle.outcome == 'failure'
+        run: |
+          {
+            echo "Run: https://github.com/mohamedaix13/brumes/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "Erreurs Kotlin/Gradle :"
+            echo '~~~'
+            grep -E "^e: |error: |FAILURE|What went wrong" -A 5 /tmp/gradle.log | head -150 || tail -80 /tmp/gradle.log
+            echo '~~~'
+          } > /tmp/issue-body.md
+          TITLE="CI Gradle failure ${{ github.run_id }}"
+          EXISTING=$(gh issue list --state open --search "CI Gradle failure in:title" --json number --jq '.[0].number' || echo "")
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file /tmp/issue-body.md
+          else
+            gh issue create --title "$TITLE" --body-file /tmp/issue-body.md || true
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: mohamedaix13/brumes
+
+      - name: Upload APK artifact
+        if: steps.gradle.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexaDev-APK
+          path: nexadev/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Release APK
+        if: steps.gradle.outcome == 'success' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nexadev-${{ github.run_number }}
+          files: nexadev/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
