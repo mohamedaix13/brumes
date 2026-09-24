@@ -208,7 +208,8 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                             busy = true; val req = prompt; prompt = ""
                             scope.launch(Dispatchers.IO) {
                                 val agent = FallbackAgent(root, apiKey, model) { path, content ->
-                                    withContext(Dispatchers.Main) { pendingWrite = path to content; true }
+                                    pendingWrite = path to content
+                                    true
                                 }
                                 val result = try { agent.run(req) { l -> scope.launch { logs.add(l) } } }
                                 catch (e: Exception) { "Erreur : " + e.message }
