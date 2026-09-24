@@ -11,7 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nexadev.app.agent.FallbackAgent
-import com.nexadev.app.builder.AndroidBuilder
+import com.nexadev.app.builder.AppBuilder
 import com.nexadev.app.codex.CodexProcess
 import com.nexadev.app.fs.ProjectStore
 import com.nexadev.app.mistral.MistralApi
@@ -44,9 +44,12 @@ fun NexaDevApp(ctx: ComponentActivity) {
                 onModelChange = { model = it; prefs.edit().putString("model", it).apply() },
                 onModels = { models = it },
                 onDone = { screen = "home" })
-            "home" -> HomeScreen(store, onOpen = { project = it; screen = "work" }, onNew = { project = store.create(it); screen = "work" }, engineReady = {
-                CodexProcess(ctx, File(ctx.filesDir, "x"), apiKey, model).available
-            })
+            "home" -> HomeScreen(store,
+                onOpen = { project = it; screen = "work" },
+                onNew = { project = store.create(it); screen = "work" },
+                onBuilder = { screen = "builder" },
+                engineReady = { CodexProcess(ctx, File(ctx.filesDir, "x"), apiKey, model).available })
+            "builder" -> BuilderScreen(ctx, apiKey, model, onBack = { screen = "home" })
             "work" -> project?.let { p ->
                 WorkspaceScreen(ctx, p, apiKey, model, onBack = { screen = "home" })
             } ?: run { screen = "home" }
@@ -99,14 +102,14 @@ fun LoginScreen(apiKey: String, models: List<String>, model: String,
         Text(status, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(24.dp))
         TextButton(onClick = onDone) { Text("Continuer sans IA (fonctions locales uniquement)") }
-        Text("Aucune requête n est envoyée à OpenAI. La clé reste sur votre appareil.",
+        Text("Aucune requête n'est envoyée à OpenAI. La clé reste sur votre appareil.",
             style = MaterialTheme.typography.bodySmall)
     }
 }
 
 @Composable
 fun HomeScreen(store: ProjectStore, onOpen: (ProjectStore.Project) -> Unit,
-               onNew: (String) -> Unit, engineReady: () -> Boolean) {
+               onNew: (String) -> Unit, onBuilder: () -> Unit, engineReady: () -> Boolean) {
     var name by remember { mutableStateOf("") }
     val projects = remember { mutableStateOf(store.list()) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -118,6 +121,8 @@ fun HomeScreen(store: ProjectStore, onOpen: (ProjectStore.Project) -> Unit,
             OutlinedTextField(name, { name = it }, label = { Text("Nouveau projet") }, modifier = Modifier.weight(1f))
             Button(onClick = { if (name.isNotBlank()) { onNew(name); name = "" } }) { Text("Créer") }
         }
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = onBuilder, modifier = Modifier.fillMaxWidth()) { Text("🛠️ Builder — créer une application Android") }
         Spacer(Modifier.height(16.dp))
         Text("Projets récents", style = MaterialTheme.typography.titleMedium)
         LazyColumn {
@@ -134,6 +139,44 @@ fun HomeScreen(store: ProjectStore, onOpen: (ProjectStore.Project) -> Unit,
     }
 }
 
+@Composable
+fun BuilderScreen(ctx: ComponentActivity, apiKey: String, model: String, onBack: () -> Unit) {
+    var prompt by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    val logs = remember { mutableStateListOf<String>() }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Row {
+            TextButton(onClick = onBack) { Text("◀ Accueil") }
+            Text("Builder", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp))
+        }
+        Text("Décrivez l'application Android à créer — l'agent génère le projet complet.",
+            style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(prompt, { prompt = it },
+            label = { Text("Ex : Crée une application qui classe mes documents") },
+            modifier = Modifier.fillMaxWidth().height(120.dp))
+        Spacer(Modifier.height(8.dp))
+        Button(enabled = !busy && prompt.isNotBlank() && apiKey.isNotBlank(), onClick = {
+            busy = true; logs.clear()
+            val appsDir = File(ctx.filesDir, "built-apps").apply { mkdirs() }
+            val outDir = File(appsDir, "app_" + System.currentTimeMillis())
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val b = AppBuilder(apiKey, model) { l -> scope.launch { logs.add(l) } }
+                    b.buildFromPrompt(prompt, outDir)
+                    withContext(Dispatchers.Main) { logs.add("✅ Projet généré : " + outDir.name) }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) { logs.add("❌ " + e.message) }
+                }
+                withContext(Dispatchers.Main) { busy = false }
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "Génération…" else "Générer le projet") }
+        Spacer(Modifier.height(8.dp))
+        LazyColumn { items(logs) { l -> Text(l, style = MaterialTheme.typography.bodySmall) } }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKey: String, model: String, onBack: () -> Unit) {
@@ -145,12 +188,10 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
     var prompt by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var pendingWrite by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var buildRequest by remember { mutableStateOf("") }
-    var building by remember { mutableStateOf(false) }
     val root = File(project.path)
     val scope = rememberCoroutineScope()
     val codex = remember { CodexProcess(ctx, root, apiKey, model) }
-    fun refresh() { files.value = root.walkTopDown().filter { it.isFile }.take(500).toList() }
+    fun refresh() { files.value = root.walkTopDown().filter { it.isFile }.take(200).toList() }
 
     LaunchedEffect(Unit) { refresh() }
     Scaffold(
@@ -164,7 +205,6 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                 NavigationBarItem(selected = tab == 0, onClick = { tab = 0 }, icon = { Text("📁") }, label = { Text("Fichiers") })
                 NavigationBarItem(selected = tab == 1, onClick = { tab = 1 }, icon = { Text("🤖") }, label = { Text("Agent") })
                 NavigationBarItem(selected = tab == 2, onClick = { tab = 2 }, icon = { Text("💻") }, label = { Text("Terminal") })
-                NavigationBarItem(selected = tab == 3, onClick = { tab = 3 }, icon = { Text("🏗️") }, label = { Text("Builder") })
             }
         }
     ) { pad ->
@@ -207,7 +247,10 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                             busy = true; val req = prompt; prompt = ""
                             scope.launch(Dispatchers.IO) {
                                 val agent = FallbackAgent(root, apiKey, model) { path, content ->
-                                    withContext(Dispatchers.Main) { pendingWrite = path to content; true }
+                                    withContext(Dispatchers.Main) {
+                                        pendingWrite = path to content
+                                        true
+                                    }
                                 }
                                 val result = try { agent.run(req) { l -> scope.launch { logs.add(l) } } }
                                 catch (e: Exception) { "Erreur : " + e.message }
@@ -217,33 +260,6 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                     }
                 }
                 2 -> TerminalScreen(root, logs)
-                3 -> Column(Modifier.fillMaxSize().padding(8.dp)) {
-                    Text("Builder — crée une application Android depuis une demande", style = MaterialTheme.typography.titleSmall)
-                    LazyColumn(Modifier.weight(1f)) { items(logs) { l -> Text(l, style = MaterialTheme.typography.bodySmall) } }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(buildRequest, { buildRequest = it },
-                            label = { Text("Ex : une app qui classe mes documents…") }, modifier = Modifier.weight(1f))
-                        Button(enabled = !building && buildRequest.isNotBlank() && apiKey.isNotBlank(), onClick = {
-                            building = true
-                            val req = buildRequest; buildRequest = ""
-                            scope.launch(Dispatchers.IO) {
-                                val b = AndroidBuilder(apiKey, model)
-                                try {
-                                    val plan = b.generate(req) { p -> scope.launch { logs.add(p) } }
-                                    val outDir = File(root, "generated-" + plan.optString("name", "app").replace(Regex("[^A-Za-z0-9]"), "-").lowercase())
-                                    outDir.mkdirs()
-                                    val written = b.materialize(outDir, plan) { p -> scope.launch { logs.add(p) } }
-                                    withContext(Dispatchers.Main) {
-                                        logs.add("🏗️ Projet généré : " + plan.optString("name") + " — " + written.size + " fichiers dans " + outDir.name)
-                                        building = false; refresh()
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) { logs.add("Erreur Builder : " + e.message); building = false } }
-                            }
-                        }) { Text(if (building) "…" else "Générer") }
-                    }
-                    if (apiKey.isBlank()) Text("Ajoutez votre clé Mistral pour utiliser le Builder.", style = MaterialTheme.typography.bodySmall)
-                }
             }
         }
     }
