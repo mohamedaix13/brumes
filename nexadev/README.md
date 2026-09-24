@@ -6,10 +6,10 @@ construit à partir du **véritable moteur open source Codex d'OpenAI**
 **l'API Mistral** (La Plateforme).
 
 ## Composants
-- **Moteur** : binaire Rust `codex` (dépôt officiel), cross-compilé pour Android ARM64
-  et exécuté en mode `app-server` (JSON-RPC sur stdio) — le vrai moteur, pas une imitation.
+- **Moteur** : binaire Rust `codex` (crate `codex-cli` du dépôt officiel), cross-compilé
+  pour Android ARM64 et exécuté en mode `app-server` (JSON-RPC sur stdio) — le vrai
+  moteur, pas une imitation.
 - **App Android** : Kotlin + Jetpack Compose (minSdk 26, target 34, ARM64).
-  Connexion Mistral, gestion de projets, explorateur/éditeur, agent, terminal.
 - **Agent intégré** : boucle d'outils Kotlin/Mistral utilisée si le binaire Rust est absent.
 - **CI sans PC** : GitHub Actions cross-compile le moteur + l'APK et publie un Release.
 
@@ -18,6 +18,6 @@ construit à partir du **véritable moteur open source Codex d'OpenAI**
 - **Aucune requête OpenAI** n'est envoyée par défaut.
 - Ne se présente pas comme une application officielle OpenAI ; crédits Apache 2.0 dans NOTICE.
 
-## Crédits
-- Code du moteur : © OpenAI, Apache 2.0 (modifications documentées dans docs/COMPATIBILITY.md).
-- Application NexaDev : © 2026 Mohamed Ouchnak, Apache 2.0.
+## Crédits et licences
+- Code du moteur : © OpenAI, licence Apache 2.0.
+- Application NexaDev : © 2026 Mohamed Ouchnak (Momo), Apache 2.0.
