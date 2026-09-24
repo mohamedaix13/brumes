@@ -76,7 +76,7 @@ fun LoginScreen(apiKey: String, models: List<String>, model: String,
                     if (list.isNotEmpty() && list.none { it == model }) onModelChange(list.first())
                     withContext(Dispatchers.Main) { loading = false; onDone() }
                 } catch (e: Exception) {
-                    withContext(Dispatchers.Main) { loading = false; status = "Échec : ${e.message}" }
+                    withContext(Dispatchers.Main) { loading = false; status = "Échec : " + e.message }
                 }
             }
         }, enabled = !loading && key.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
@@ -188,12 +188,12 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                     pendingWrite?.let { (path, content) ->
                         Card(Modifier.fillMaxWidth().padding(4.dp)) {
                             Column(Modifier.padding(8.dp)) {
-                                Text("Modification proposée : $path", style = MaterialTheme.typography.titleSmall)
+                                Text("Modification proposée : " + path, style = MaterialTheme.typography.titleSmall)
                                 Button(onClick = {
                                     File(root, path).apply { parentFile?.mkdirs() }.writeText(content)
-                                    logs.add("✅ Appliqué : $path"); refresh(); pendingWrite = null
+                                    logs.add("✅ Appliqué : " + path); refresh(); pendingWrite = null
                                 }) { Text("Accepter") }
-                                TextButton(onClick = { logs.add("❌ Rejeté : $path"); pendingWrite = null }) { Text("Rejeter") }
+                                TextButton(onClick = { logs.add("❌ Rejeté : " + path); pendingWrite = null }) { Text("Rejeter") }
                             }
                         }
                     }
@@ -209,8 +209,8 @@ fun WorkspaceScreen(ctx: ComponentActivity, project: ProjectStore.Project, apiKe
                                     }
                                 }
                                 val result = try { agent.run(req) { l -> scope.launch { logs.add(l) } } }
-                                catch (e: Exception) { "Erreur : ${e.message}" }
-                                withContext(Dispatchers.Main) { logs.add("🤖 $result"); busy = false; refresh() }
+                                catch (e: Exception) { "Erreur : " + e.message }
+                                withContext(Dispatchers.Main) { logs.add("🤖 " + result); busy = false; refresh() }
                             }
                         }) { Text(if (busy) "…" else "Envoyer") }
                     }
@@ -227,7 +227,7 @@ fun TerminalScreen(root: File, logs: SnapshotStateList<String>) {
     var output by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().padding(8.dp)) {
-        Text("Terminal (sh) — ${root.name}", style = MaterialTheme.typography.titleSmall)
+        Text("Terminal (sh) — " + root.name, style = MaterialTheme.typography.titleSmall)
         LazyColumn(Modifier.weight(1f)) {
             items(output.lines()) { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
@@ -240,7 +240,7 @@ fun TerminalScreen(root: File, logs: SnapshotStateList<String>) {
                     val out = p.inputStream.bufferedReader().readText()
                     val err = p.errorStream.bufferedReader().readText()
                     p.waitFor()
-                    withContext(Dispatchers.Main) { output += "\n$ $c\n$out$err" }
+                    withContext(Dispatchers.Main) { output += "\n$ " + c + "\n" + out + err }
                 }
             }) { Text("Exécuter") }
         }
