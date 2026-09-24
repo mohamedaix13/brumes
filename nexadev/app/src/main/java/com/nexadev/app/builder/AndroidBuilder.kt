@@ -12,7 +12,7 @@ class AndroidBuilder(private val apiKey: String, private val model: String) {
         onProgress("Planification du projet avec " + model + "...")
         val system = "Tu es un generateur d'applications Android. Reponds UNIQUEMENT avec un JSON valide, " +
             "sans markdown, de la forme : " +
-            '"""' + '{"name":"NomApp","description":"...","files":[{"path":"chemin","content":"contenu"}]}' + '"""' +
+            """{"name":"NomApp","description":"...","files":[{"path":"chemin","content":"contenu"}]}""" +
             ". Genere un projet Android minimal mais complet et compilable avec Gradle (Kotlin + Compose) : " +
             "settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, gradle.properties avec " +
             "android.useAndroidX=true, AndroidManifest.xml, MainActivity.kt (package com.exemple.generated), " +
