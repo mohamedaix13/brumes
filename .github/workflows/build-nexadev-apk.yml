@@ -8,6 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     steps:
       - name: Checkout host repo
         uses: actions/checkout@v4
@@ -55,7 +58,6 @@ jobs:
         continue-on-error: true
         run: |
           cd upstream-codex/codex-rs
-          # détecte le vrai nom du paquet CLI
           PKG=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | python3 -c "
           import json,sys
           m=json.load(sys.stdin)
@@ -79,31 +81,60 @@ jobs:
             echo "ENGINE=absent" >> $GITHUB_ENV
           fi
 
-      - name: Diagnostics Rust (résumé public du build)
+      - name: Diagnostics Rust (resume public du build)
         if: steps.rust.outcome == 'failure'
         run: |
           echo "## Erreurs de compilation Rust (moteur Codex)" >> $GITHUB_STEP_SUMMARY
           echo '~~~' >> $GITHUB_STEP_SUMMARY
           grep -E "^error" -A 3 /tmp/rust-build.log | head -60 >> $GITHUB_STEP_SUMMARY || echo "(voir logs complets)" >> $GITHUB_STEP_SUMMARY
           echo '~~~' >> $GITHUB_STEP_SUMMARY
-          echo "L'APK est quand même construit avec l'agent intégré Kotlin/Mistral (100% fonctionnel)." >> $GITHUB_STEP_SUMMARY
+          echo "L'APK est quand meme construit avec l'agent integre Kotlin/Mistral." >> $GITHUB_STEP_SUMMARY
 
       - name: Build APK with Gradle
+        id: gradle
         run: |
           curl -sL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q /tmp/gradle.zip -d /tmp
           cd nexadev
-          /tmp/gradle-8.7/bin/gradle assembleDebug --no-daemon
+          set +e
+          /tmp/gradle-8.7/bin/gradle assembleDebug --no-daemon > /tmp/gradle.log 2>&1
+          CODE=$?
+          tail -200 /tmp/gradle.log
+          echo "exitcode=$CODE" >> $GITHUB_OUTPUT
+          exit $CODE
+
+      - name: Rapport public d'erreur Gradle (issue GitHub)
+        if: failure() && steps.gradle.outcome == 'failure'
+        run: |
+          {
+            echo "Run: https://github.com/mohamedaix13/brumes/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "Erreurs Kotlin/Gradle :"
+            echo '~~~'
+            grep -E "^e: |error: |FAILURE|What went wrong" -A 5 /tmp/gradle.log | head -150 || tail -80 /tmp/gradle.log
+            echo '~~~'
+          } > /tmp/issue-body.md
+          TITLE="CI Gradle failure ${{ github.run_id }}"
+          EXISTING=$(gh issue list --state open --search "CI Gradle failure in:title" --json number --jq '.[0].number' || echo "")
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file /tmp/issue-body.md
+          else
+            gh issue create --title "$TITLE" --body-file /tmp/issue-body.md || true
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: mohamedaix13/brumes
 
       - name: Upload APK artifact
+        if: steps.gradle.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: NexaDev-APK
           path: nexadev/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Release APK
+        if: steps.gradle.outcome == 'success' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main'
         with:
           tag_name: nexadev-${{ github.run_number }}
           files: nexadev/app/build/outputs/apk/debug/app-debug.apk
