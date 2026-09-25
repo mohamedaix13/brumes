@@ -10,9 +10,11 @@ android {
         applicationId = "com.nexadev.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
-        ndk { abiFilters += "arm64-v8a" }
+        versionCode = 2
+        versionName = "0.1.1"
+        // APK universel : aucune restriction d'architecture.
+        // Le moteur Rust (libcodex.so, arm64) est charge uniquement sur les appareils arm64 ;
+        // ailleurs l'agent Kotlin/Mistral integre prend le relais.
     }
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
