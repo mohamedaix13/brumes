@@ -23,11 +23,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: SDK Android (preinstalle sur le runner)
+      - name: SDK Android
         run: |
+          set -x
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$ANDROID_HOME"
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
+          ls "$ANDROID_HOME" 2>/dev/null || true
+          SDKM="$(command -v sdkmanager || true)"
+          if [ -z "$SDKM" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          if [ -z "$SDKM" ]; then
+            SDKM="$(find "$ANDROID_HOME" -name sdkmanager -type f 2>/dev/null | head -n1 || true)"
+          fi
+          echo "SDKM=$SDKM"
+          if [ -n "$SDKM" ]; then
+            yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+            "$SDKM" --install "platforms;android-35" "build-tools;35.0.0" >/dev/null 2>&1 || true
+          else
+            echo "sdkmanager introuvable : SDK préinstallé utilisé tel quel"
+          fi
+          ls "$ANDROID_HOME/platforms" 2>/dev/null || true
+          ls "$ANDROID_HOME/build-tools" 2>/dev/null || true
 
       - name: Compiler l'APK
         run: |
@@ -42,9 +59,8 @@ jobs:
           name: logs-erreur-build
           path: |
             AndroidBrumes/app/build/reports/**
-            AndroidBrumes/build/**
             AndroidBrumes/app/build/outputs/logs/**
-            /tmp/gradle-8.10.2/**
+            AndroidBrumes/build/**
           if-no-files-found: ignore
           retention-days: 7
 
