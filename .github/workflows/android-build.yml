@@ -14,7 +14,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -23,16 +23,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Installer le SDK Android
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: SDK Android (preinstalle sur le runner)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
 
       - name: Compiler l'APK
         run: |
           curl --fail --silent --show-error --location https://services.gradle.org/distributions/gradle-8.10.2-bin.zip --output /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
-          /tmp/gradle-8.10.2/bin/gradle -p AndroidBrumes :app:assembleDebug --no-daemon
+          /tmp/gradle-8.10.2/bin/gradle -p AndroidBrumes :app:assembleDebug --no-daemon --stacktrace
 
       - name: Téléverser les logs en cas d'échec
         if: failure()
@@ -42,6 +43,8 @@ jobs:
           path: |
             AndroidBrumes/app/build/reports/**
             AndroidBrumes/build/**
+            AndroidBrumes/app/build/outputs/logs/**
+            /tmp/gradle-8.10.2/**
           if-no-files-found: ignore
           retention-days: 7
 
