@@ -253,7 +253,21 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MAG_FILTER,GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,if(repeat)GLES20.GL_REPEAT else GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,if(repeat)GLES20.GL_REPEAT else GLES20.GL_CLAMP_TO_EDGE)
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,0x84FE,8f)
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,bmp,0);GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);bmp.recycle();return id
+    }
+    private fun h2(x:Int,y:Int,s:Int):Float{var h=x*374761393+y*668265263+s*1274126177;h=(h xor (h shr 13))*1274126177;return ((h xor (h shr 16)) and 0xFFFF)/65535f}
+    private fun vnoise(x:Float,y:Float,s:Int):Float{val xi=Math.floor(x.toDouble()).toInt();val yi=Math.floor(y.toDouble()).toInt();val fx=x-xi;val fy=y-yi;val u=fx*fx*(3-2*fx);val v=fy*fy*(3-2*fy);val a=h2(xi,yi,s);val b=h2(xi+1,yi,s);val c=h2(xi,yi+1,s);val d=h2(xi+1,yi+1,s);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+    private fun procTexture(lo:FloatArray,hi:FloatArray,seed:Int,size:Int=512):Int{
+        val px=IntArray(size*size)
+        for(yy in 0 until size){val fy=yy.toFloat()/size;for(xx in 0 until size){val fx=xx.toFloat()/size
+            var f=0f;var amp=1f;var tot=0f;var sc=6f
+            repeat(4){o->f+=vnoise(fx*sc+o*17.3f,fy*sc+o*9.7f,seed+o*31)*amp;tot+=amp;amp*=.52f;sc*=2.1f}
+            f/=tot
+            val r=((lo[0]+(hi[0]-lo[0])*f)*255f).toInt().coerceIn(0,255);val g=((lo[1]+(hi[1]-lo[1])*f)*255f).toInt().coerceIn(0,255);val b=((lo[2]+(hi[2]-lo[2])*f)*255f).toInt().coerceIn(0,255)
+            px[yy*size+xx]=0xFF000000.toInt() or (r shl 16) or (g shl 8) or b
+        }}
+        return uploadTexture(Bitmap.createBitmap(px,size,size,Bitmap.Config.ARGB_8888),true)
     }
 
     override fun onSurfaceCreated(gl:javax.microedition.khronos.opengles.GL10?,cfg:javax.microedition.khronos.egl.EGLConfig?){
@@ -267,7 +281,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val cm=cubeMesh();cube=fb(cm);cubeCount=cm.size/8;val sm=sphereMesh();sphere=fb(sm);sphereCount=sm.size/8
         for(w in 0..2){val tm=terrainMesh(w);terrain[w]=fb(tm);terrainCount[w]=tm.size/8}
         loadMap("world_aether.json",1);loadMap("world_forest.json",2)
-        texGrass=loadAssetTexture("grass_top.png");texDirt=loadAssetTexture("dirt.png");texStone=loadAssetTexture("stone.png");texLog=loadAssetTexture("log_oak.png");texLeaves=loadAssetTexture("cq_leaves.png");texMoss=loadAssetTexture("cq_moss.png");texCobble=loadAssetTexture("cq_cobble.png");texObsidian=loadAssetTexture("cq_obsidian.png");texBlue=loadAssetTexture("wool_colored_blue.png")
+        texGrass=procTexture(floatArrayOf(.24f,.52f,.18f),floatArrayOf(.46f,.74f,.31f),11);texDirt=procTexture(floatArrayOf(.33f,.22f,.13f),floatArrayOf(.55f,.40f,.23f),23);texStone=procTexture(floatArrayOf(.40f,.41f,.44f),floatArrayOf(.63f,.64f,.68f),37);texLog=procTexture(floatArrayOf(.36f,.25f,.15f),floatArrayOf(.58f,.42f,.26f),53);texLeaves=procTexture(floatArrayOf(.13f,.38f,.12f),floatArrayOf(.31f,.60f,.24f),71);texMoss=procTexture(floatArrayOf(.18f,.38f,.16f),floatArrayOf(.40f,.58f,.28f),89);texCobble=procTexture(floatArrayOf(.34f,.35f,.37f),floatArrayOf(.60f,.62f,.64f),101);texObsidian=procTexture(floatArrayOf(.07f,.06f,.11f),floatArrayOf(.20f,.18f,.30f),113);texBlue=procTexture(floatArrayOf(.10f,.22f,.60f),floatArrayOf(.32f,.48f,.92f),127)
         texSkyDay=loadAssetTexture("sky_day.jpg",false);texSkyNight=loadAssetTexture("sky_night.jpg",false)
         seedMobs()
     }
