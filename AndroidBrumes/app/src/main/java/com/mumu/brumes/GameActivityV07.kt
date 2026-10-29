@@ -81,8 +81,7 @@ class GameActivityV07 : Activity() {
         root.addView(spells,FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,dp(45),Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply{setMargins(0,0,0,dp(8))})
 
         val actions=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
-        actions.addView(button("✦ Esquive",78){game.dash
-()})
+        actions.addView(button("✦ Esquive",78){game.dash()})
         actions.addView(button("☁ Vol",78){game.flight()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
@@ -104,8 +103,7 @@ class GameActivityV07 : Activity() {
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joystick gauche : déplacement. Droit : caméra et hauteur en vol. Deux éléments lancent une combinaison. Les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
-        root.addView(shade,FrameLayout.L
-ayoutParams(-1,-1));menu=shade
+        root.addView(shade,FrameLayout.LayoutParams(-1,-1));menu=shade
     }
 }
 
@@ -171,8 +169,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
-        arrayOf(f
-loatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
+        arrayOf(floatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
         arrayOf(floatArrayOf(-28f,-10f),floatArrayOf(12f,28f),floatArrayOf(34f,-22f))
     )
     private var ruinIndex=0
@@ -200,8 +197,7 @@ loatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
         for(j in 0 until rings){
             val p0=-PI.toFloat()/2+PI.toFloat()*j/rings;val p1=-PI.toFloat()/2+PI.toFloat()*(j+1)/rings
             for(i in 0 until seg){
-                val t0=2*PI.toFloat()*i/seg;val t1=2*PI.toFloat()
-*(i+1)/seg
+                val t0=2*PI.toFloat()*i/seg;val t1=2*PI.toFloat()*(i+1)/seg
                 val a=p(t0,p0);val b=p(t1,p0);val c=p(t1,p1);val d=p(t0,p1)
                 val vv=arrayOf(a,b,c,a,c,d)
                 val uv=arrayOf(floatArrayOf(i.toFloat()/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-(j+1f)/rings),floatArrayOf(i.toFloat()/seg,1f-j.toFloat()/rings),floatArrayOf((i+1f)/seg,1f-(j+1f)/rings),floatArrayOf(i.toFloat()/seg,1f-(j+1f)/rings))
@@ -246,8 +242,7 @@ loatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
         }catch(_:Throwable){}
     }
 
-    private fun loadAssetTexture(name:String,repeat:Boo
-lean=true):Int{
+    private fun loadAssetTexture(name:String,repeat:Boolean=true):Int{
         val bmp=assets.open(name).use{BitmapFactory.decodeStream(it)} ?: return 0
         return uploadTexture(bmp,repeat)
     }
@@ -264,8 +259,7 @@ lean=true):Int{
     override fun onSurfaceCreated(gl:javax.microedition.khronos.opengles.GL10?,cfg:javax.microedition.khronos.egl.EGLConfig?){
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);GLES20.glEnable(GLES20.GL_BLEND);GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA,GLES20.GL_ONE_MINUS_SRC_ALPHA);GLES20.glEnable(GLES20.GL_CULL_FACE)
         val vs="""attribute vec3 a;attribute vec3 n;attribute vec2 uv;uniform mat4 m;uniform mat4 model;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 wp=model*vec4(a,1.0);W=wp.xyz;N=normalize(n);T=uv;gl_Position=m*vec4(a,1.0);}"""
-        val fs="""precision mediump float;uniform vec4 c;uniform vec3 eye;uniform float glow;uniform float fog;uniform vec3 fogColor;uniform float useTex;uniform float sky;uniform sampler2D tex;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 tx=texture2D(tex,T);if(sky>0.5){gl_FragColor=vec4(tx.rgb*c.rgb,1.0);return;}vec3 base=c.rgb;if(useTex>0.5){base*=mix(vec3(1.0),tx.rgb*1.45,0.92);}float d=max(dot(normalize(N),normalize(vec3(-0.35,0.82,0.42))),0.0);vec3 col=base*(0.36+d*0
-.76)+base*glow*0.58;float f=1.0-exp(-pow(length(W-eye)*fog,2.0));gl_FragColor=vec4(mix(col,fogColor,clamp(f,0.0,0.84)),c.a*(useTex>0.5?tx.a:1.0));}"""
+        val fs="""precision mediump float;uniform vec4 c;uniform vec3 eye;uniform float glow;uniform float fog;uniform vec3 fogColor;uniform float useTex;uniform float sky;uniform sampler2D tex;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 tx=texture2D(tex,T);if(sky>0.5){gl_FragColor=vec4(tx.rgb*c.rgb,1.0);return;}vec3 base=c.rgb;if(useTex>0.5){base*=mix(vec3(1.0),tx.rgb*1.45,0.92);}float d=max(dot(normalize(N),normalize(vec3(-0.35,0.82,0.42))),0.0);vec3 col=base*(0.36+d*0.76)+base*glow*0.58;float f=1.0-exp(-pow(length(W-eye)*fog,2.0));gl_FragColor=vec4(mix(col,fogColor,clamp(f,0.0,0.84)),c.a*(useTex>0.5?tx.a:1.0));}"""
         fun sh(type:Int,s:String)=GLES20.glCreateShader(type).also{GLES20.glShaderSource(it,s);GLES20.glCompileShader(it)}
         val sv=sh(GLES20.GL_VERTEX_SHADER,vs);val sf=sh(GLES20.GL_FRAGMENT_SHADER,fs);program=GLES20.glCreateProgram();GLES20.glAttachShader(program,sv);GLES20.glAttachShader(program,sf);GLES20.glLinkProgram(program);GLES20.glUseProgram(program)
         aPos=GLES20.glGetAttribLocation(program,"a");aNor=GLES20.glGetAttribLocation(program,"n");aUv=GLES20.glGetAttribLocation(program,"uv")
@@ -278,8 +272,7 @@ lean=true):Int{
         seedMobs()
     }
 
-    override fun onSurfaceCha
-nged(gl:javax.microedition.khronos.opengles.GL10?,w:Int,h:Int){
+    override fun onSurfaceChanged(gl:javax.microedition.khronos.opengles.GL10?,w:Int,h:Int){
         GLES20.glViewport(0,0,w,h);Matrix.perspectiveM(proj,0,58f,w.toFloat()/max(1,h),.12f,190f)
     }
 
@@ -335,8 +328,7 @@ nged(gl:javax.microedition.khronos.opengles.GL10?,w:Int,h:Int){
             else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
         }
         if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;spell="Réapparition"}
-        chec
-kPortals()
+        checkPortals()
         hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell))}
     }
 
@@ -389,8 +381,7 @@ kPortals()
         val b=terrain[world]?:return;drawMesh(b,terrainCount[world],0f,0f,0f,1f,1f,1f,tint[0],tint[1],tint[2],1f,texGrass,0f,0f)
     }
     private fun drawMainScenery(){
-        val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatAr
-rayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
+        val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatArrayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
         for((i,p) in trees.withIndex()){
             val gy=ground(p[0],p[1]);val h=2.7f+(i%3)*.32f
             box(p[0],gy+h*.55f,p[1],.34f,h*.55f,.34f,.82f,.72f,.58f,texLog)
@@ -415,8 +406,7 @@ rayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30
     }
     private fun drawRuins(){
         for((ri,r) in ruins[world].withIndex()){
-            va
-l gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
+            val gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
             for(k in 0 until 8){val a=k*PI.toFloat()/4f;box(r[0]+cos(a)*2.05f,gy+.18f,r[1]+sin(a)*2.05f,.42f,.16f,.72f,.78f,.82f,.84f,texMoss,pulse)}
             box(r[0],gy+.06f,r[1],1.15f,.07f,1.15f,.30f,.72f,1f,texBlue,.72f)
         }
