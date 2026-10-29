@@ -10,6 +10,11 @@ on:
 
 permissions:
   contents: read
+  issues: write
+
+concurrency:
+  group: apk-build
+  cancel-in-progress: true
 
 jobs:
   apk:
@@ -27,8 +32,6 @@ jobs:
         run: |
           set -x
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME" 2>/dev/null || true
           SDKM="$(command -v sdkmanager || true)"
           if [ -z "$SDKM" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
             SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
@@ -36,21 +39,37 @@ jobs:
           if [ -z "$SDKM" ]; then
             SDKM="$(find "$ANDROID_HOME" -name sdkmanager -type f 2>/dev/null | head -n1 || true)"
           fi
-          echo "SDKM=$SDKM"
           if [ -n "$SDKM" ]; then
             yes | "$SDKM" --licenses >/dev/null 2>&1 || true
             "$SDKM" --install "platforms;android-35" "build-tools;35.0.0" >/dev/null 2>&1 || true
-          else
-            echo "sdkmanager introuvable : SDK préinstallé utilisé tel quel"
           fi
           ls "$ANDROID_HOME/platforms" 2>/dev/null || true
-          ls "$ANDROID_HOME/build-tools" 2>/dev/null || true
 
       - name: Compiler l'APK
         run: |
+          set -o pipefail
           curl --fail --silent --show-error --location https://services.gradle.org/distributions/gradle-8.10.2-bin.zip --output /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /tmp
-          /tmp/gradle-8.10.2/bin/gradle -p AndroidBrumes :app:assembleDebug --no-daemon --stacktrace
+          /tmp/gradle-8.10.2/bin/gradle -p AndroidBrumes :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
+
+      - name: Rapport d'erreur en issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Le build APK a échoué. Commit ${{ github.sha }}."
+            echo ""
+            echo '### Erreurs détectées'
+            echo '```'
+            grep -E "^e: |error: |FAILURE|What went wrong|Caused by:" -A 4 /tmp/gradle-build.log | head -n 120 || true
+            echo '```'
+            echo '### Fin du log'
+            echo '```'
+            tail -n 40 /tmp/gradle-build.log || true
+            echo '```'
+          } > /tmp/issue.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Build APK échoué" --body-file /tmp/issue.md || true
 
       - name: Téléverser les logs en cas d'échec
         if: failure()
@@ -58,9 +77,8 @@ jobs:
         with:
           name: logs-erreur-build
           path: |
+            /tmp/gradle-build.log
             AndroidBrumes/app/build/reports/**
-            AndroidBrumes/app/build/outputs/logs/**
-            AndroidBrumes/build/**
           if-no-files-found: ignore
           retention-days: 7
 
