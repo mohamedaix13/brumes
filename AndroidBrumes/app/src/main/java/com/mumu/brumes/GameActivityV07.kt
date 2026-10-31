@@ -57,6 +57,22 @@ class GameActivityV07 : Activity() {
     override fun onCreate(savedInstanceState:Bundle?){
  
        super.onCreate(savedInstanceState)
+        try{Thread.setDefaultUncaughtExceptionHandler{t,e->
+            try{
+                runOnUiThread{
+                    try{
+                        android.app.AlertDialog.Builder(this@GameActivityV07)
+                            .setTitle("Brumes s'est arrêté")
+                            .setMessage((e.toString()+"\n\n"+e.stackTraceToString()).take(2000))
+                            .setCancelable(false)
+                            .setPositiveButton("Fermer"){_,_->try{finishAffinity()}catch(_:Throwable){};Runtime.getRuntime().exit(0)}
+                            .show()
+                    }catch(_:Throwable){}
+                }
+                Thread.sleep(60000)
+            }catch(_:Throwable){}
+            Runtime.getRuntime().exit(0)
+        }}catch(_:Throwable){}
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
