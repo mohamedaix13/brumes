@@ -6,6 +6,14 @@ plugins {
 android {
     namespace = "com.mumu.brumes"
     compileSdk = 35
+    signingConfigs {
+        create("brumes") {
+            storeFile = file("../brumes.keystore")
+            storePassword = "brumes2026"
+            keyAlias = "brumes"
+            keyPassword = "brumes2026"
+        }
+    }
     defaultConfig {
         applicationId = "com.mumu.brumes"
         minSdk = 26
@@ -17,6 +25,7 @@ android {
         getByName("debug") {
             applicationIdSuffix = ".s25tex070"
             versionNameSuffix = "-s25test"
+            signingConfig = signingConfigs.getByName("brumes")
         }
     }
     compileOptions {

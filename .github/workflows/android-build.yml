@@ -45,6 +45,9 @@ jobs:
           fi
           ls "$ANDROID_HOME/platforms" 2>/dev/null || true
 
+      - name: Preparer la cle de signature fixe
+        run: base64 -d AndroidBrumes/brumes.keystore.b64 > AndroidBrumes/brumes.keystore
+
       - name: Compiler l'APK
         run: |
           set -o pipefail
