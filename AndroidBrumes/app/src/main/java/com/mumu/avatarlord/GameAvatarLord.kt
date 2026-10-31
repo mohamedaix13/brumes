@@ -430,18 +430,18 @@ void main(){
         val qx = quadXZMesh(); quadXZ = fb(qx)
         for (w in 0..4) { val tm = terrainMesh(w); terrain[w] = fb(tm); terrainCount[w] = tm.size / 8 }
         val S = 1024
-        texGrass = procTexture(S, 11, base = { f, _, _, _ -> floatArrayOf(.16f + .28f * f, .34f + .34f * f, .10f + .18f * f) }
-        texLava = procTexture(S, 23, base = { f, fx, fy, _ -> val l = .5f + .5f * sin(fx * 40 + f * 9) * sin(fy * 34 - f * 7); floatArrayOf(.25f + .75f * l * f + .25f * f, .08f + .30f * l * f * f, .02f) }
-        texSand = procTexture(S, 31, base = { f, _, _, _ -> floatArrayOf(.55f + .30f * f, .43f + .25f * f, .24f + .16f * f) }
-        texRock = procTexture(S, 37, base = { f, _, _, _ -> val g = .30f + .34f * f; floatArrayOf(g, g * 1.02f, g * 1.06f) }
-        texObsidian = procTexture(S, 41, base = { f, _, _, _ -> val g = .05f + .13f * f; floatArrayOf(g, g * .95f, g * 1.5f) }
-        texWood = procTexture(S, 53, base = { f, fx, _, _ -> val ring = .5f + .5f * sin((fx * 24 + f * 5) * 3.14159f); floatArrayOf(.30f + .22f * ring + .08f * f, .20f + .14f * ring + .05f * f, .11f + .08f * ring) }
-        texLeaves = procTexture(S, 71, base = { f, _, _, _ -> floatArrayOf(.08f + .24f * f, .26f + .34f * f, .07f + .16f * f) }
-        texMoss = procTexture(S, 89, base = { f, _, _, _ -> floatArrayOf(.12f + .26f * f, .28f + .30f * f, .10f + .18f * f) }
-        texWater = procTexture(S, 97, base = { f, fx, fy, _ -> val w = .5f + .5f * sin(fx * 30 + f * 6) * sin(fy * 26 - f * 5); floatArrayOf(.10f + .25f * w, .32f + .38f * w, .55f + .35f * w) }
-        texSnow = procTexture(S, 103, base = { f, _, _, _ -> val g = .82f + .16f * f; floatArrayOf(g, g, g * 1.02f) }
-        texPortal = procTexture(S, 107, base = { f, fx, fy, _ -> val cx = (fx - .5f) * 2; val cy = (fy - .5f) * 2; val d = sqrt((cx * cx + cy * cy).toDouble()).toFloat(); val ring = .5f + .5f * sin(d * 22 - f * 10); floatArrayOf(.2f + .8f * ring * f, .1f + .5f * ring, .9f * f + .1f) }
-        texCrystal = procTexture(S, 113, base = { f, fx, fy, _ -> val d = abs(fx - .5f) + abs(fy - .5f); val c = (.4f + .6f * (1 - d * 2).coerceIn(0f, 1f)); floatArrayOf(.5f * c + .4f * f, .8f * c + .3f * f, 1f * c + .2f) }
+        texGrass = procTexture(S, 11, base = { f, _, _, _ -> floatArrayOf(.16f + .28f * f, .34f + .34f * f, .10f + .18f * f) })
+        texLava = procTexture(S, 23, base = { f, fx, fy, _ -> val l = .5f + .5f * sin(fx * 40 + f * 9) * sin(fy * 34 - f * 7); floatArrayOf(.25f + .75f * l * f + .25f * f, .08f + .30f * l * f * f, .02f) })
+        texSand = procTexture(S, 31, base = { f, _, _, _ -> floatArrayOf(.55f + .30f * f, .43f + .25f * f, .24f + .16f * f) })
+        texRock = procTexture(S, 37, base = { f, _, _, _ -> val g = .30f + .34f * f; floatArrayOf(g, g * 1.02f, g * 1.06f) })
+        texObsidian = procTexture(S, 41, base = { f, _, _, _ -> val g = .05f + .13f * f; floatArrayOf(g, g * .95f, g * 1.5f) })
+        texWood = procTexture(S, 53, base = { f, fx, _, _ -> val ring = .5f + .5f * sin((fx * 24 + f * 5) * 3.14159f); floatArrayOf(.30f + .22f * ring + .08f * f, .20f + .14f * ring + .05f * f, .11f + .08f * ring) })
+        texLeaves = procTexture(S, 71, base = { f, _, _, _ -> floatArrayOf(.08f + .24f * f, .26f + .34f * f, .07f + .16f * f) })
+        texMoss = procTexture(S, 89, base = { f, _, _, _ -> floatArrayOf(.12f + .26f * f, .28f + .30f * f, .10f + .18f * f) })
+        texWater = procTexture(S, 97, base = { f, fx, fy, _ -> val w = .5f + .5f * sin(fx * 30 + f * 6) * sin(fy * 26 - f * 5); floatArrayOf(.10f + .25f * w, .32f + .38f * w, .55f + .35f * w) })
+        texSnow = procTexture(S, 103, base = { f, _, _, _ -> val g = .82f + .16f * f; floatArrayOf(g, g, g * 1.02f) })
+        texPortal = procTexture(S, 107, base = { f, fx, fy, _ -> val cx = (fx - .5f) * 2; val cy = (fy - .5f) * 2; val d = sqrt((cx * cx + cy * cy).toDouble()).toFloat(); val ring = .5f + .5f * sin(d * 22 - f * 10); floatArrayOf(.2f + .8f * ring * f, .1f + .5f * ring, .9f * f + .1f) })
+        texCrystal = procTexture(S, 113, base = { f, fx, fy, _ -> val d = abs(fx - .5f) + abs(fy - .5f); val c = (.4f + .6f * (1 - d * 2).coerceIn(0f, 1f)); floatArrayOf(.5f * c + .4f * f, .8f * c + .3f * f, 1f * c + .2f) })
         buildWorlds()
         loadPrefs()
     }
