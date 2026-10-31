@@ -13,6 +13,7 @@ import android.opengl.GLUtils
 import android.opengl.Matrix
 import android.os.Bundle
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -90,6 +91,34 @@ class GameActivityV07 : Activity() {
         game.onHud={s->hud.text="BRUMES 0.7 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
     }
+    private val keys=mutableSetOf<Int>()
+    private fun applyKeys(){
+        val fwd=(if(keys.contains(KeyEvent.KEYCODE_W)||keys.contains(KeyEvent.KEYCODE_Z))1f else 0f)-(if(keys.contains(KeyEvent.KEYCODE_S))1f else 0f)
+        val side=(if(keys.contains(KeyEvent.KEYCODE_D))1f else 0f)-(if(keys.contains(KeyEvent.KEYCODE_A)||keys.contains(KeyEvent.KEYCODE_Q))1f else 0f)
+        game.move(side,-fwd)
+        val lookX=(if(keys.contains(KeyEvent.KEYCODE_DPAD_RIGHT))1f else 0f)-(if(keys.contains(KeyEvent.KEYCODE_DPAD_LEFT))1f else 0f)
+        val lookY=(if(keys.contains(KeyEvent.KEYCODE_DPAD_UP))1f else 0f)-(if(keys.contains(KeyEvent.KEYCODE_DPAD_DOWN))1f else 0f)
+        game.look(lookX,lookY)
+    }
+    override fun onKeyDown(keyCode:Int,event:KeyEvent?):Boolean{
+        if(event!=null&&event.repeatCount==0){
+            when(keyCode){
+                KeyEvent.KEYCODE_SPACE->{game.flight();return true}
+                KeyEvent.KEYCODE_SHIFT_LEFT,KeyEvent.KEYCODE_SHIFT_RIGHT->{game.dash();return true}
+                KeyEvent.KEYCODE_F->{game.fastTravel();return true}
+                KeyEvent.KEYCODE_ESCAPE->{if(menu==null)openMenu() else closeMenu();return true}
+            }
+            if(keyCode>=KeyEvent.KEYCODE_1&&keyCode<=KeyEvent.KEYCODE_7){game.element(keyCode-KeyEvent.KEYCODE_1);return true}
+        }
+        when(keyCode){
+            KeyEvent.KEYCODE_W,KeyEvent.KEYCODE_Z,KeyEvent.KEYCODE_S,KeyEvent.KEYCODE_D,KeyEvent.KEYCODE_A,KeyEvent.KEYCODE_Q,KeyEvent.KEYCODE_DPAD_UP,KeyEvent.KEYCODE_DPAD_DOWN,KeyEvent.KEYCODE_DPAD_LEFT,KeyEvent.KEYCODE_DPAD_RIGHT->{keys.add(keyCode);applyKeys();return true}
+        }
+        return super.onKeyDown(keyCode,event)
+    }
+    override fun onKeyUp(keyCode:Int,event:KeyEvent?):Boolean{
+        if(keys.remove(keyCode)){applyKeys();return true}
+        return super.onKeyUp(keyCode,event)
+    }
     override fun onPause(){game.onPause();super.onPause()}
     override fun onResume(){super.onResume();game.onResume()}
     @Deprecated("Deprecated in Java") override fun onBackPressed(){if(menu==null)openMenu() else closeMenu()}
@@ -102,7 +131,7 @@ class GameActivityV07 : Activity() {
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
         body.addView(text("0.7 · HD procédural · ciels HDR · rotation totale · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
-        body.addView(text("Joystick gauche : déplacement. Droit : caméra et hauteur en vol. Deux éléments lancent une combinaison. Les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
+        body.addView(text("Joysticks : déplacement et caméra. Clavier : ZQSD avancer, flèches caméra, 1-7 éléments, Espace vol, Maj esquive, F ruine. Souris : maintenir clic gauche pour avancer vers le curseur, clic droit caméra, molette zoom. Deux éléments = combinaison, les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
         root.addView(shade,FrameLayout.LayoutParams(-1,-1));menu=shade
     }
@@ -142,7 +171,19 @@ private class BrumesV07View(activity:Activity):GLSurfaceView(activity){
     fun fastTravel(){queueEvent{r.fastTravel()}}
     fun setPaused(v:Boolean){queueEvent{r.paused=v}}
     private var pinch=0f
+    override fun onGenericMotionEvent(e:MotionEvent):Boolean{
+        if(e.actionMasked==MotionEvent.ACTION_SCROLL){r.zoom(-e.getAxisValue(MotionEvent.AXIS_VSCROLL)*.5f);return true}
+        return super.onGenericMotionEvent(e)
+    }
     override fun onTouchEvent(e:MotionEvent):Boolean{
+        if(e.getToolType(0)==MotionEvent.TOOL_TYPE_MOUSE){
+            val prim=e.buttonState and MotionEvent.BUTTON_PRIMARY!=0
+            val sec=e.buttonState and MotionEvent.BUTTON_SECONDARY!=0
+            val dx=e.x-width/2f;val dy=e.y-height/2f;val l=max(1f,hypot(dx,dy))
+            if(prim){val m=(l/(min(width,height)*.45f)).coerceAtMost(1f);r.mx=dx/l*m;r.my=dy/l*m}else{r.mx=0f;r.my=0f}
+            if(sec){r.lx=dx/l*1.3f;r.ly=dy/l*1.3f}else{r.lx=0f;r.ly=0f}
+            return true
+        }
         if(e.pointerCount>=2){
             val d=hypot(e.getX(0)-e.getX(1),e.getY(0)-e.getY(1));if(pinch>0)r.zoom((pinch-d)/230f);pinch=d
         } else if(e.actionMasked==MotionEvent.ACTION_UP||e.actionMasked==MotionEvent.ACTION_CANCEL)pinch=0f
