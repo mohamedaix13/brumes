@@ -7,16 +7,16 @@ android {
     namespace = "com.mumu.brumes"
     compileSdk = 35
     defaultConfig {
-        applicationId = "com.mumu.brumes"
+        applicationId = "com.mumu.avatarlord"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.7.0"
+        versionCode = 12
+        versionName = "1.0.0"
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".s25tex070"
-            versionNameSuffix = "-s25test"
+            applicationIdSuffix = ".taba9plus"
+            versionNameSuffix = "-tab-a9-plus"
         }
     }
     compileOptions {
