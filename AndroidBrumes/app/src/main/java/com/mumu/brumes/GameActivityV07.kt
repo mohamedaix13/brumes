@@ -59,27 +59,33 @@ class GameActivityV07 : Activity() {
        super.onCreate(savedInstanceState)
         try{Thread.setDefaultUncaughtExceptionHandler{t,e->
             try{
-                runOnUiThread{
+                try{java.io.File(filesDir,"crash.log").writeText("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+"\nAndroid : "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nEcran : "+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+"\nThread : "+t.name+"\nErreur : "+e+"\n\n"+e.stackTraceToString())}catch(_:Throwable){}
+                if(android.os.Looper.getMainLooper().getThread()!=Thread.currentThread()){
                     try{
-                        android.app.AlertDialog.Builder(this@GameActivityV07)
-                            .setTitle("Brumes s'est arrêté")
-                            .setMessage((e.toString()+"\n\n"+e.stackTraceToString()).take(2000))
-                            .setCancelable(false)
-                            .setPositiveButton("Fermer"){_,_->try{finishAffinity()}catch(_:Throwable){};Runtime.getRuntime().exit(0)}
-                            .show()
+                        runOnUiThread{
+                            try{
+                                android.app.AlertDialog.Builder(this@GameActivityV07)
+                                    .setTitle("Brumes s'est arrêté")
+                                    .setMessage((e.toString()+"\n\n"+e.stackTraceToString()).take(2000))
+                                    .setCancelable(false)
+                                    .setPositiveButton("Fermer"){_,_->try{finishAffinity()}catch(_:Throwable){};Runtime.getRuntime().exit(0)}
+                                    .show()
+                            }catch(_:Throwable){}
+                        }
+                        Thread.sleep(60000)
                     }catch(_:Throwable){}
                 }
-                Thread.sleep(60000)
             }catch(_:Throwable){}
             Runtime.getRuntime().exit(0)
         }}catch(_:Throwable){}
+        try{
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
         root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
         game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
 
-        val hud=text("BRUMES 0.7",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.7.1",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -104,8 +110,20 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.7 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.7.1 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
+        }catch(err:Throwable){
+            try{
+                val tv=TextView(this).apply{textSize=13f;setTextColor(0xFFF5F2EA.toInt());setPadding(60,50,60,50);text="Brumes n'a pas pu démarrer sur cet appareil.\n\nAppareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+", Android "+android.os.Build.VERSION.RELEASE+")\n\n"+err+"\n\n"+err.stackTraceToString().take(1800)}
+                setContentView(android.widget.ScrollView(this).apply{addView(tv);setBackgroundColor(0xFF070B10.toInt())})
+            }catch(_:Throwable){try{finish()}catch(_:Throwable){}}
+            return
+        }
+        val lastCrash=try{java.io.File(filesDir,"crash.log").takeIf{it.exists()}?.readText()}catch(_:Throwable){null}
+        if(lastCrash!=null){
+            try{java.io.File(filesDir,"crash.log").delete()}catch(_:Throwable){}
+            try{android.app.AlertDialog.Builder(this).setTitle("Brumes a planté au lancement précédent").setMessage(lastCrash.take(2500)).setPositiveButton("OK"){_,_->}.show()}catch(_:Throwable){}
+        }
     }
     private val keys=mutableSetOf<Int>()
     private fun applyKeys(){
@@ -145,7 +163,8 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.7 · HD procédural · ciels HDR · rotation totale · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.7.1 · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joysticks : déplacement et caméra. Clavier : ZQSD avancer, flèches caméra, 1-7 éléments, Espace vol, Maj esquive, F ruine. Souris : maintenir clic gauche pour avancer vers le curseur, clic droit caméra, molette zoom. Deux éléments = combinaison, les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
@@ -192,7 +211,7 @@ private class BrumesV07View(activity:Activity):GLSurfaceView(activity){
         return super.onGenericMotionEvent(e)
     }
     override fun onTouchEvent(e:MotionEvent):Boolean{
-        if(e.getToolType(0)==MotionEvent.TOOL_TYPE_MOUSE){
+        if(e.pointerCount>0&&e.getToolType(0)==MotionEvent.TOOL_TYPE_MOUSE){
             val prim=e.buttonState and MotionEvent.BUTTON_PRIMARY!=0
             val sec=e.buttonState and MotionEvent.BUTTON_SECONDARY!=0
             val dx=e.x-width/2f;val dy=e.y-height/2f;val l=max(1f,hypot(dx,dy))
@@ -301,7 +320,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
 
     private fun loadAssetTexture(name:String,repeat:Boolean=true):Int{
-        val bmp=assets.open(name).use{BitmapFactory.decodeStream(it)} ?: return 0
+        val bmp=try{assets.open(name).use{BitmapFactory.decodeStream(it)}}catch(_:Throwable){null} ?: return 0
         return uploadTexture(bmp,repeat)
     }
     private fun uploadTexture(bmp:Bitmap,repeat:Boolean):Int{
