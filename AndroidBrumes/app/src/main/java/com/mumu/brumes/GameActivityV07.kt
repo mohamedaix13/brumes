@@ -40,7 +40,8 @@ class GameActivityV07 : Activity() {
     private lateinit var game:BrumesV07View
     private var menu:View?=null
     private val gold=Color.rgb(228,196,126)
-    private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
+    private val uiScale=(minOf(resources.displayMetrics.widthPixels,resources.displayMetrics.heightPixels).toFloat()/resources.displayMetrics.density/420f).coerceIn(1f,1.5f)
+    private fun dp(v:Int)=(v*resources.displayMetrics.density*uiScale).toInt()
     private fun panel(alpha:Int=185)=android.graphics.drawable.GradientDrawable().apply{
         setColor(Color.argb(alpha,7,11,16));cornerRadius=dp(13).toFloat();setStroke(dp(1),Color.argb(130,228,196,126))
     }
@@ -99,7 +100,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.7 · textures Conquest actives · ciels HDR · cartes réintégrées",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.7 · HD procédural · ciels HDR · rotation totale · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joystick gauche : déplacement. Droit : caméra et hauteur en vol. Deux éléments lancent une combinaison. Les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
