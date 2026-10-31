@@ -61,10 +61,6 @@ class GameAvatarLord : Activity() {
         setPadding(dp(3), 0, dp(3), 0); minWidth = 0; minHeight = 0; setOnClickListener { onClick() }
         layoutParams = LinearLayout.LayoutParams(dp(w), dp(42))
     }
-    private fun noHover(v: View) {
-        v.setHoverable(false)
-        if (v is ViewGroup) for (i in 0 until v.childCount) noHover(v.getChildAt(i))
-    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -92,7 +88,6 @@ class GameAvatarLord : Activity() {
             hudView.text = "AVATARLORD 1.0 · ${s.realm}${if (s.night) " 🌙" else ""}\nVie ${s.life}   Mana ${s.mana}   Score ${s.score}   ${if (s.flying) "VOL" else "SOL"}\nCristaux ${s.crystals}/${s.crystalsMax}${if (s.purified) " ✦ PURIFIÉ" else ""} · ${s.enemies} ennemis${if (s.bossHp >= 0) " · Boss ${s.bossHp} PV" else ""}\n${s.spell}${if (s.combo.isNotEmpty()) "  ·  " + s.combo else ""} · ${s.fps} FPS · ${s.quality}"
         }
         setContentView(root)
-        noHover(root)
     }
     override fun onPause() { game.onPause(); game.saveNow(); super.onPause() }
     override fun onResume() { super.onResume(); game.onResume() }
