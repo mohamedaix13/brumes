@@ -1,16 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
-    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
         android:theme="@style/AppTheme"
-        android:label="Brumes 0.7"
+        android:label="AvatarLord 1.0"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
         android:largeHeap="true">
         <activity
-            android:name="com.mumu.brumes.GameActivityV07"
+            android:name="com.mumu.avatarlord.GameAvatarLord"
             android:screenOrientation="fullSensor"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|density|uiMode"
             android:exported="true">
@@ -19,5 +19,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.mumu.brumes.GameActivityV07"
+            android:label="Brumes 0.7"
+            android:screenOrientation="fullSensor"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|density|uiMode"
+            android:exported="false" />
     </application>
 </manifest>

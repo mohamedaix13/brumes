@@ -85,7 +85,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: Téléverser l'APK
         with:
-          name: Brumes-APK
+          name: AvatarLord-APK
           path: AndroidBrumes/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
           if-no-files-found: error
