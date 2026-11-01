@@ -90,7 +90,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else a.play(n);if(n=="hit")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.8.3",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.8.4",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -115,7 +115,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.3 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · ${s.enemies} ennemis · ${s.kills} kills · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.8.4 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · ${s.enemies} ennemis · ${s.kills} kills · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -168,7 +168,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.8.3 · soleil doré le jour · oiseaux dans le ciel des brumes · étang animé (île forêt) · HUD à barres vie/mana · brutes mondes 1 & 2 · compteur de kills (+8 mana par ennemi tué) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.8.4 · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -261,6 +261,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         arrayOf(floatArrayOf(-28f,-10f),floatArrayOf(12f,28f),floatArrayOf(34f,-22f))
     )
     private var ruinIndex=0
+    private var campT=0f
 
     private fun fb(a:FloatArray)=ByteBuffer.allocateDirect(a.size*4).order(ByteOrder.nativeOrder()).asFloatBuffer().apply{put(a);position(0)}
 
@@ -429,6 +430,8 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(flying){flyBoost=max(0f,flyBoost-14f*dt);py+=( -ly*5.3f + flyBoost)*dt;py=py.coerceIn(1.1f,34f)}else py=ground(px,pz)+1.25f
         if(dashFx>0)dashFx=max(0f,dashFx-dt);if(!flying&&(f!=0f||s!=0f)){stepT+=dt;if(stepT>.42f){stepT=0f;sfx("step")}}else stepT=0f
         val iter=sparks.iterator();while(iter.hasNext()){val s0=iter.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.vy+=.18f*dt;s0.life-=dt;if(s0.life<=0)iter.remove()}
+        campT+=dt
+        if(world==0&&campT>1.15f){campT=0f;for(r in ruins[0]){val fx=r[0]+3.4f;val fz=r[1]+2.8f;val fy=ground(fx,fz)+.55f;repeat(3){k->val a=t*2f+k*2.4f;sparks+=V07Spark(fx+sin(a)*.10f,fy,fz+cos(a)*.10f,cos(a)*.28f,.8f+hsh(k,42f)*.9f,sin(a)*.28f,.7f+hsh(k,44f)*.4f,1f,.55f+hsh(k,45f)*.25f,.12f,.055f)};while(sparks.size>140)sparks.removeAt(0)}}
         for(m in mobs[world]){
             if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=if(m.brute)170f else 100f}
             m.phase+=dt*(if(m.friendly).38f else if(m.brute).3f else .62f);m.cooldown=max(0f,m.cooldown-dt)
@@ -472,8 +475,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             sph(sunX,sunY,sunZ,7.6f,1f,.84f,.36f,0,.30f,dayF*.5f)
             sph(sunX,sunY,sunZ,3.4f,1f,.93f,.55f,0,.95f,dayF)
         }
-        drawTerrain(
-)
+        drawTerrain()
         if(world==0)drawMainScenery() else drawImportedMap(world)
         drawRuins();drawPortals();drawPickups();drawMobs();drawPlayer();drawSparks()
     }
@@ -502,6 +504,34 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val tint=when(world){0->floatArrayOf(.72f,.88f,.70f);1->floatArrayOf(.68f,.78f,.86f);else->floatArrayOf(.57f,.79f,.58f)}
         val b=terrain[world]?:return;drawMesh(b,terrainCount[world],0f,0f,0f,1f,1f,1f,tint[0],tint[1],tint[2],1f,texGrass,0f,0f)
     }
+    private fun drawSignposts(){
+        val orange=floatArrayOf(1f,.55f,.18f);val vert=floatArrayOf(.30f,.85f,.35f)
+        fun post(x:Float,z:Float,c:FloatArray){
+            val gy=ground(x,z)
+            box(x,gy+.85f,z,.14f,.85f,.14f,.62f,.50f,.36f,texLog)
+            box(x,gy+1.62f,z,.52f,.34f,.16f,.74f,.76f,.80f,texCobble)
+            sph(x,gy+1.62f,z,.20f,c[0],c[1],c[2],0,.85f+.25f*sin(t*2.4f+x))
+            sph(x,gy+1.62f,z,.09f,1f,1f,.92f,0,1f)
+        }
+        post(6f,2.2f,orange);post(12f,1.4f,orange);post(18f,.6f,orange)
+        post(-6f,2.2f,vert);post(-12f,1.4f,vert);post(-18f,.6f,vert)
+    }
+    private fun drawCampfires(){
+        for((ri,r) in ruins[0].withIndex()){
+            val fx=r[0]+3.4f;val fz=r[1]+2.8f;val gy=ground(fx,fz)
+            for(k in 0 until 5){val a=k*PI.toFloat()*2f/5f;sph(fx+cos(a)*.55f,gy+.12f,fz+sin(a)*.55f,.19f,.42f,.40f,.38f,texStone)}
+            for(k in 0 until 3){sph(fx+(k-1)*.14f,gy+.16f,fz+(k%2)*.12f,.09f,.30f,.20f,.12f,texLog)}
+            val fl=.9f+.35f*sin(t*7f+ri*2.1f)
+            sph(fx,gy+.45f,fz,.30f,1f,.52f,.10f,0,fl)
+            sph(fx,gy+.62f,fz,.17f,1f,.80f,.30f,0,fl)
+            sph(fx,gy+.38f,fz,.75f,1f,.45f,.08f,0,.30f,.18f)
+        }
+    }
+    private fun drawBridge(){
+        val z=12f;val deckY=1.15f
+        for(i in 0 until 8){val bx=-3f+i*1.8f;val gy=ground(bx,z);box(bx,gy+deckY,z,.95f,.22f,2.2f,.74f,.75f,.73f,texCobble);if(i%2==0){box(bx,gy+.45f,z,.34f,.5f,.34f,.66f,.68f,.70f,texCobble)}}
+        for(i in 0 until 9){val rx=-3.8f+i*1.8f;val gy=ground(rx,z);box(rx,gy+deckY+.52f,z-1.02f,.16f,.30f,.16f,.70f,.72f,.74f,texCobble);box(rx,gy+deckY+.52f,z+1.02f,.16f,.30f,.16f,.70f,.72f,.74f,texCobble)}
+    }
     private fun drawMainScenery(){
         val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatArrayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
         for((i,p) in trees.withIndex()){
@@ -521,6 +551,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(nightF>.02f)for(i in 0 until 16){val bx=hsh(i,7f)*80f-40f;val bz=hsh(i,8f)*70f-35f;val by=ground(bx,bz)+1.1f+sin(t*1.3f+i*2.1f)*.5f;sph(bx+sin(t*.7f+i)*1.4f,by,bz+cos(t*.6f+i*1.7f)*1.4f,.06f,1f,.93f,.55f,0,1f,nightF)}
         val birdA=1f-nightF*.85f
         if(birdA>.05f)for(i in 0 until 5){val ba=t*.3f+i*1.2566f;val bxc=sin(ba)*27f+3f;val bzc=cos(ba)*23f-3f;val byc=9.6f+sin(t*1.8f+i*2f)*.6f;sph(bxc,byc,bzc,.16f,.92f,.55f,.22f,0,0f,birdA);sph(bxc+.13f,byc+.02f,bzc,.10f,.72f,.68f,.62f,0,0f,birdA)}
+        drawSignposts();drawCampfires();drawBridge()
     }
     private fun drawImportedMap(w:Int){
         for(o in maps[w]){
@@ -531,9 +562,11 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(w==1){
             for(i in 0 until 12){val x=hsh(i,11f)*90f-45f;val z=hsh(i,12f)*80f-40f;val y=ground(x,z,w)+2.2f+sin(t*1.1f+i*1.9f)*.9f;sph(x,y,z,.28f+(i%3)*.09f,.42f,.56f,.95f,texObsidian,.55f)}
             for(i in 0 until 8){val x=hsh(i,13f)*70f-35f;val z=hsh(i,14f)*60f-30f;val y=ground(x,z,w)+1.6f+sin(t*.8f+i*2.7f)*.7f;sph(x,y,z,.07f,.55f,.75f,1f,0,1f)}
+            for(i in 0 until 6){val x=hsh(i,17f)*100f-50f;val z=hsh(i,18f)*90f-45f;val gy=ground(x,z,w);val hh=1.1f+hsh(i,19f)*1.6f;box(x,gy+hh*.5f,z,.30f,hh*.5f,.30f,.70f,.74f,.82f,texStone);sph(x,gy+hh+.25f,z,.22f,.30f,.75f,1f,0,.6f+.4f*sin(t*1.7f+i))}
+            for(i in 0 until 7){val a=t*.45f+i*.897f;val x=sin(a)*32f+5f;val z=cos(a*1.2f)*26f-4f;val y=ground(x,z,w)+3.4f+sin(t*.9f+i*1.6f)*1.1f;sph(x,y,z,.09f+hsh(i,20f)*.06f,.85f,.62f,1f,0,.8f)}
         }
         if(w==2){
-            val extra=arrayOf(floatArrayOf(-20f,-20f),floatArrayOf(-30f,10f),floatArrayOf(22f,-24f),floatArrayOf(30f,16f))
+            val extra=arrayOf(floatArrayOf(-20f,-20f),floatArrayOf(-30f,10f),floatArrayOf(22f,-24f),floatArrayOf(30f,16f),floatArrayOf(-36f,-14f),floatArrayOf(8f,-30f))
             val pgy=ground(-7f,-9f,2)
             box(-7f,pgy+.05f,-9f,6.3f,.05f,5.1f,.10f,.25f,.17f,texMoss)
             val wob=.74f+.07f*sin(t*1.5f)
@@ -541,6 +574,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             for(k in 0 until 3){val ra=t*.9f+k*2.09f;sph(-7f+cos(ra)*3.3f,pgy+.24f+.04f*sin(t*2.1f+k),-9f+sin(ra)*2.5f,.09f,.5f,.78f,1f,0,.75f)}
             for(p in extra){val gy=ground(p[0],p[1],w);box(p[0],gy+1.3f,p[1],.28f,1.3f,.28f,.78f,.67f,.52f,texLog);sph(p[0],gy+3.2f,p[1],1.3f,.38f,.68f,.34f,texLeaves)}
             for(i in 0 until 14){val x=hsh(i,15f)*90f-45f;val z=hsh(i,16f)*80f-40f;val gy=ground(x,z,w);box(x,gy+.17f,z,.08f,.18f,.08f,.88f,.83f,.72f);sph(x,gy+.38f,z,.21f,.82f,.16f,.13f)}
+            for(i in 14 until 22){val x=hsh(i,23f)*96f-48f;val z=hsh(i,24f)*86f-43f;val gy=ground(x,z,w);val cc=arrayOf(floatArrayOf(.88f,.30f,.24f),floatArrayOf(.90f,.72f,.22f),floatArrayOf(.80f,.44f,.80f))[i%3];box(x,gy+.12f,z,.06f,.13f,.06f,.92f,.88f,.78f);sph(x,gy+.28f,z,.16f+hsh(i,25f)*.09f,cc[0],cc[1],cc[2],0,.35f)}
             for(i in 0 until 6){val x=sin(t*.5f+i*1.1f)*24f+i*3.5f-9f;val z=cos(t*.4f+i*.9f)*22f;val y=ground(x,z,w)+1.2f+sin(t*2.2f+i)*.4f;sph(x,y,z,.05f,.98f,.80f,.25f,0,1f);sph(x+.09f,y,z,.04f,.98f,.80f,.25f,0,1f)}
         }
     }
@@ -559,7 +593,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             box(x,gy+1.65f,z,.06f,1.35f,1.25f,r,g,b,texObsidian,.95f,.82f)
             for(k in 0 until 6){val a=t*1.5f+k*PI.toFloat()/3f;sph(x+cos(a)*1.25f,gy+1.65f+sin(a*.7f)*.9f,z+.18f,.08f,r,g,b,0,1f)}
         }
-        if(world==0){portal(24f,0f,.25f,.66f,1f);portal(-24f,0f,.72f,.35f,1f)}else portal(0f,18f,.35f,.75f,1f)
+        if(world==0){portal(24f,0f,1f,.55f,.18f);portal(-24f,0f,.30f,.85f,.35f)}else portal(0f,18f,.35f,.75f,1f)
     }
     private fun drawHumanoid(x:Float,z:Float,friendly:Boolean,player:Boolean=false,brute:Boolean=false){
         val gy=if(player)py else ground(x,z)+1.05f;val body=if(player)floatArrayOf(.22f,.28f,.34f) else if(brute)floatArrayOf(.30f,.04f,.13f) else if(friendly)floatArrayOf(.18f,.42f,.34f) else floatArrayOf(.48f,.08f,.08f)
@@ -572,8 +606,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
     private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly,false,m.brute)}
     private fun drawPlayer(){drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
-    private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,
-(s.life/.8f).coerceIn(0f,1f))}
+    private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,(s.life/.8f).coerceIn(0f,1f))}
 
 }
 
