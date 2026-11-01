@@ -85,7 +85,7 @@ class GameActivityV07 : Activity() {
         root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
         game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
 
-        val hud=text("BRUMES 0.7.2",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.7.3",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -110,7 +110,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.7.2 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.7.3 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -163,7 +163,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.7.2 · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.7.3 · vraies textures · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joysticks : déplacement et caméra. Clavier : ZQSD avancer, flèches caméra, 1-7 éléments, Espace vol, Maj esquive, F ruine. Souris : maintenir clic gauche pour avancer vers le curseur, clic droit caméra, molette zoom. Deux éléments = combinaison, les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
@@ -346,6 +346,10 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         }}
         return uploadTexture(Bitmap.createBitmap(px,size,size,Bitmap.Config.ARGB_8888),true)
     }
+    private fun texOr(name:String,lo:FloatArray,hi:FloatArray,seed:Int):Int{
+        val t=try{loadAssetTexture(name,true)}catch(_:Throwable){0}
+        return if(t!=0)t else procTexture(lo,hi,seed)
+    }
 
     override fun onSurfaceCreated(gl:javax.microedition.khronos.opengles.GL10?,cfg:javax.microedition.khronos.egl.EGLConfig?){
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);GLES20.glEnable(GLES20.GL_BLEND);GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA,GLES20.GL_ONE_MINUS_SRC_ALPHA);GLES20.glEnable(GLES20.GL_CULL_FACE)
@@ -358,7 +362,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val cm=cubeMesh();cube=fb(cm);cubeCount=cm.size/8;val sm=sphereMesh();sphere=fb(sm);sphereCount=sm.size/8
         for(w in 0..2){val tm=terrainMesh(w);terrain[w]=fb(tm);terrainCount[w]=tm.size/8}
         loadMap("world_aether.json",1);loadMap("world_forest.json",2)
-        texGrass=procTexture(floatArrayOf(.24f,.52f,.18f),floatArrayOf(.46f,.74f,.31f),11);texDirt=procTexture(floatArrayOf(.33f,.22f,.13f),floatArrayOf(.55f,.40f,.23f),23);texStone=procTexture(floatArrayOf(.40f,.41f,.44f),floatArrayOf(.63f,.64f,.68f),37);texLog=procTexture(floatArrayOf(.36f,.25f,.15f),floatArrayOf(.58f,.42f,.26f),53);texLeaves=procTexture(floatArrayOf(.13f,.38f,.12f),floatArrayOf(.31f,.60f,.24f),71);texMoss=procTexture(floatArrayOf(.18f,.38f,.16f),floatArrayOf(.40f,.58f,.28f),89);texCobble=procTexture(floatArrayOf(.34f,.35f,.37f),floatArrayOf(.60f,.62f,.64f),101);texObsidian=procTexture(floatArrayOf(.07f,.06f,.11f),floatArrayOf(.20f,.18f,.30f),113);texBlue=procTexture(floatArrayOf(.10f,.22f,.60f),floatArrayOf(.32f,.48f,.92f),127)
+        texGrass=texOr("grass_top.png",floatArrayOf(.24f,.52f,.18f),floatArrayOf(.46f,.74f,.31f),11);texDirt=texOr("dirt.png",floatArrayOf(.33f,.22f,.13f),floatArrayOf(.55f,.40f,.23f),23);texStone=texOr("stone.png",floatArrayOf(.40f,.41f,.44f),floatArrayOf(.63f,.64f,.68f),37);texLog=texOr("log_oak.png",floatArrayOf(.36f,.25f,.15f),floatArrayOf(.58f,.42f,.26f),53);texLeaves=texOr("cq_leaves.png",floatArrayOf(.13f,.38f,.12f),floatArrayOf(.31f,.60f,.24f),71);texMoss=texOr("cq_moss.png",floatArrayOf(.18f,.38f,.16f),floatArrayOf(.40f,.58f,.28f),89);texCobble=texOr("cq_cobble.png",floatArrayOf(.34f,.35f,.37f),floatArrayOf(.60f,.62f,.64f),101);texObsidian=texOr("cq_obsidian.png",floatArrayOf(.07f,.06f,.11f),floatArrayOf(.20f,.18f,.30f),113);texBlue=texOr("wool_colored_blue.png",floatArrayOf(.10f,.22f,.60f),floatArrayOf(.32f,.48f,.92f),127)
         texSkyDay=loadAssetTexture("sky_day.jpg",false);texSkyNight=loadAssetTexture("sky_night.jpg",false)
         seedMobs()
     }
