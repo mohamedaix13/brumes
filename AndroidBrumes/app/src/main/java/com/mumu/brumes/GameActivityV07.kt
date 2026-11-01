@@ -92,7 +92,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit"||n=="slam")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.8.6",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.8.7",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(76),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -117,7 +117,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.6 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\nGARDIEN [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
+        game.onHud={s->hud.text="BRUMES 0.8.7 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\nGARDIEN [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -170,7 +170,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.8.6 · SUPER BOSS le Gardien des Brumes : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.8.7 · pluie atmosphérique périodique dans les Brumes (brume plus dense quand il pleut) · coffres au trésor à trouver (+40 vie, mana à fond) · SUPER BOSS le Gardien des Brumes : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -257,7 +257,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>()
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private val chests=java.util.ArrayList<V07Pick>()
     private fun diffMult()=min(1.4f,1f+level*.08f)
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
@@ -381,6 +381,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         texGrass=texOr("grass_top.png",floatArrayOf(.24f,.52f,.18f),floatArrayOf(.46f,.74f,.31f),11);texDirt=texOr("dirt.png",floatArrayOf(.33f,.22f,.13f),floatArrayOf(.55f,.40f,.23f),23);texStone=texOr("stone.png",floatArrayOf(.40f,.41f,.44f),floatArrayOf(.63f,.64f,.68f),37);texLog=texOr("log_oak.png",floatArrayOf(.36f,.25f,.15f),floatArrayOf(.58f,.42f,.26f),53);texLeaves=texOr("cq_leaves.png",floatArrayOf(.13f,.38f,.12f),floatArrayOf(.31f,.60f,.24f),71);texMoss=texOr("cq_moss.png",floatArrayOf(.18f,.38f,.16f),floatArrayOf(.40f,.58f,.28f),89);texCobble=texOr("cq_cobble.png",floatArrayOf(.34f,.35f,.37f),floatArrayOf(.60f,.62f,.64f),101);texObsidian=texOr("cq_obsidian.png",floatArrayOf(.07f,.06f,.11f),floatArrayOf(.20f,.18f,.30f),113);texBlue=texOr("wool_colored_blue.png",floatArrayOf(.10f,.22f,.60f),floatArrayOf(.32f,.48f,.92f),127)
         texSkyDay=loadAssetTexture("sky_day.jpg",false);texSkyNight=loadAssetTexture("sky_night.jpg",false)
         if(picks.isEmpty())for(w in 0..2)for(i in 0 until 6){picks+=V07Pick(hsh(i,31f+w*7f)*100f-50f,hsh(i,32f+w*7f)*90f-45f,w,0,0f);picks+=V07Pick(hsh(i,33f+w*7f)*100f-50f,hsh(i,34f+w*7f)*90f-45f,w,1,0f)}
+        if(chests.isEmpty())for(w in 0..2)for(i in 0 until 3)chests+=V07Pick(hsh(i*3+w,71f)*90f-45f,hsh(i*3+w,72f)*80f-40f,w,2,0f)
         seedMobs()
     }
 
@@ -458,6 +459,9 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val si=shots.iterator();while(si.hasNext()){val s0=si.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.life-=dt;val gy2=ground(s0.x,s0.z);if(s0.life<=0f||s0.y<gy2+.15f){burst(s0.x,s0.y,s0.z,.5f,.2f,1f,10);si.remove()}else if(hypot(px-s0.x,pz-s0.z)<1.3f&&s0.y>py-1f&&s0.y<py+2.4f){life-=6f;burst(s0.x,s0.y,s0.z,.6f,.1f,.5f,12);sfx("hit");si.remove()}}
         if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;kills/=2;level=kills/5;spell="Réapparition"}
         for(p in picks){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.15f){if(p.kind==0)life=min(100f,life+25f) else mana=min(100f,mana+40f);p.cd=60f;sfx("chime");burst(p.x,ground(p.x,p.z)+1f,p.z,if(p.kind==0).95f else .35f,if(p.kind==0).4f else .6f,1f,14)}}
+        rainT+=dt;rainOn=world==0&&rainT%75f>55f
+        if(rainOn)repeat(2){val rx=px+(hsh(dropC,91f)-.5f)*46f;val rz=pz+(hsh(dropC,92f)-.5f)*46f;dropC++;sparks+=V07Spark(rx,py+9f+hsh(dropC,93f)*5f,rz,0f,-12f,0f,.85f,.55f,.65f,.9f,.045f);while(sparks.size>150)sparks.removeAt(0)}
+        for(p in chests){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.45f){life=min(100f,life+40f);mana=min(100f,mana+40f);p.cd=120f;spell="Trésor !";sfx("chime");burst(p.x,ground(p.x,p.z)+.8f,p.z,.95f,.8f,.25f,20)}}
         checkPortals()
         hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills,level,if(bossOn)bossHp/bossMax*100f else -1f))}
         snap=""+world+"|"+px+"|"+py+"|"+pz+"|"+life+"|"+mana+"|"+flying+"|"+bossTier
@@ -478,7 +482,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         GLES20.glClearColor(clear[0],clear[1],clear[2],1f);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT);GLES20.glUseProgram(program)
         val eyeY=py+2.4f+sin(pitch)*3.2f;val ex=px-sin(yaw)*cos(pitch)*camZoom;val ez=pz+cos(yaw)*cos(pitch)*camZoom
         Matrix.setLookAtM(view,0,ex,eyeY,ez,px,py+.75f,pz,0f,1f,0f);Matrix.multiplyMM(vp,0,proj,0,view,0)
-        GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).0072f else .0060f)
+        GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).0072f else if(rainOn).0092f else .0060f)
         val fcd=when(world){0->floatArrayOf(.64f,.72f,.79f);1->floatArrayOf(.60f,.66f,.84f);else->floatArrayOf(.62f,.77f,.64f)};val fcn=when(world){0->floatArrayOf(.15f,.19f,.27f);1->floatArrayOf(.17f,.20f,.32f);else->floatArrayOf(.13f,.19f,.23f)};GLES20.glUniform3f(uFogColor,fcd[0]+(fcn[0]-fcd[0])*nightF,fcd[1]+(fcn[1]-fcd[1])*nightF,fcd[2]+(fcn[2]-fcd[2])*nightF);GLES20.glUniform1i(uTex,0)
 
         drawSky(ex,eyeY,ez,if(night)texSkyNight else texSkyDay)
@@ -624,7 +628,8 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         }
     }
     internal fun restoreState(sv:String){try{val p=sv.split("|");if(p.size<7)return;world=p[0].toInt().coerceIn(0,2);px=p[1].toFloat().coerceIn(-60f,60f);py=p[2].toFloat().coerceIn(1.1f,34f);pz=p[3].toFloat().coerceIn(-60f,60f);life=p[4].toFloat().coerceIn(1f,100f);mana=p[5].toFloat().coerceIn(0f,100f);flying=p[6].toBoolean();if(p.size>=8)bossTier=(p[7].toIntOrNull()?:0).coerceIn(0,20);spawnGrace=5f;portalCooldown=2f;spell="Partie restaur\u00e9e";sfx("amb"+world)}catch(_:Throwable){}}
-    private fun drawPickups(){for((i,p) in picks.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);val y=gy+.55f+sin(t*2f+i)*.16f;if(p.kind==0)sph(p.x,y,p.z,.24f,.96f,.32f,.40f,0,.85f) else sph(p.x,y,p.z,.24f,.30f,.55f,1f,0,.85f);sph(p.x,y+.36f,p.z,.08f,1f,1f,.85f,0,.9f)}}
+    private fun drawPickups(){for((i,p) in picks.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);val y=gy+.55f+sin(t*2f+i)*.16f;if(p.kind==0)sph(p.x,y,p.z,.24f,.96f,.32f,.40f,0,.85f) else sph(p.x,y,p.z,.24f,.30f,.55f,1f,0,.85f);sph(p.x,y+.36f,p.z,.08f,1f,1f,.85f,0,.9f)}
+        for((i,p) in chests.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);box(p.x,gy+.30f,p.z,.55f,.28f,.40f,.62f,.44f,.15f,texLog,.25f+.15f*sin(t*2f+i));box(p.x,gy+.56f,p.z,.60f,.12f,.45f,.78f,.60f,.20f,texLog,.5f);sph(p.x,gy+.70f,p.z,.07f,.98f,.85f,.35f,0,.8f+.2f*sin(t*3f+i))}}
     private fun drawRuins(){
         for((ri,r) in ruins[world].withIndex()){
             val gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
