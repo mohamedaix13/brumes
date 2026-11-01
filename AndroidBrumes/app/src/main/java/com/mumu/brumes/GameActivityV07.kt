@@ -92,7 +92,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit"||n=="slam")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.8.7",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.8.8",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(76),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -117,7 +117,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.7 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\nGARDIEN [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
+        game.onHud={s->hud.text="BRUMES 0.8.8 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\nGARDIEN [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -170,7 +170,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.8.7 · pluie atmosphérique périodique dans les Brumes (brume plus dense quand il pleut) · coffres au trésor à trouver (+40 vie, mana à fond) · SUPER BOSS le Gardien des Brumes : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.8.8 · ORAGE pendant la pluie : éclairs qui frappent le sol (8 dégâts si tu es dessus !) + tonnerre · feuilles automnales qui tombent dans l'île forêt · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -257,7 +257,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private val chests=java.util.ArrayList<V07Pick>()
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private var boltT=0f;private var boltCd=0f;private var boltX=0f;private var boltZ=0f;private val chests=java.util.ArrayList<V07Pick>()
     private fun diffMult()=min(1.4f,1f+level*.08f)
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
@@ -460,6 +460,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;kills/=2;level=kills/5;spell="Réapparition"}
         for(p in picks){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.15f){if(p.kind==0)life=min(100f,life+25f) else mana=min(100f,mana+40f);p.cd=60f;sfx("chime");burst(p.x,ground(p.x,p.z)+1f,p.z,if(p.kind==0).95f else .35f,if(p.kind==0).4f else .6f,1f,14)}}
         rainT+=dt;rainOn=world==0&&rainT%75f>55f
+        if(rainOn){boltCd-=dt;boltT=max(0f,boltT-dt);if(boltCd<=0f){boltCd=3.5f+hsh(dropC,95f)*7f;boltT=.32f;boltX=px+(hsh(dropC,96f)-.5f)*70f;boltZ=pz+(hsh(dropC,97f)-.5f)*70f;dropC++;sfx("thunder");burst(boltX,ground(boltX,boltZ)+1f,boltZ,.7f,.75f,1f,18);if(hypot(px-boltX,pz-boltZ)<3.5f){life-=8f;burst(px,py+.6f,pz,.9f,.9f,1f,12)}}}else{boltT=0f}
         if(rainOn)repeat(2){val rx=px+(hsh(dropC,91f)-.5f)*46f;val rz=pz+(hsh(dropC,92f)-.5f)*46f;dropC++;sparks+=V07Spark(rx,py+9f+hsh(dropC,93f)*5f,rz,0f,-12f,0f,.85f,.55f,.65f,.9f,.045f);while(sparks.size>150)sparks.removeAt(0)}
         for(p in chests){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.45f){life=min(100f,life+40f);mana=min(100f,mana+40f);p.cd=120f;spell="Trésor !";sfx("chime");burst(p.x,ground(p.x,p.z)+.8f,p.z,.95f,.8f,.25f,20)}}
         checkPortals()
@@ -479,13 +480,14 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val now=System.nanoTime();val dt=if(last==0L)0f else min(.033f,(now-last)/1_000_000_000f);last=now;update(dt)
         val phase=(sin(t*.022f)+1f)*.5f;val night=phase<.22f;nightF=((.45f-phase)/.45f).coerceIn(0f,1f)
         val clear=when(world){0->if(night)floatArrayOf(.025f,.045f,.085f) else floatArrayOf(.16f,.24f,.32f);1->if(night)floatArrayOf(.03f,.04f,.10f) else floatArrayOf(.18f,.25f,.36f);else->if(night)floatArrayOf(.02f,.055f,.065f) else floatArrayOf(.13f,.24f,.22f)}
-        GLES20.glClearColor(clear[0],clear[1],clear[2],1f);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT);GLES20.glUseProgram(program)
+        val boltF=min(1f,boltT*3.2f);GLES20.glClearColor(clear[0]+.50f*boltF,clear[1]+.55f*boltF,clear[2]+.62f*boltF,1f);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT);GLES20.glUseProgram(program)
         val eyeY=py+2.4f+sin(pitch)*3.2f;val ex=px-sin(yaw)*cos(pitch)*camZoom;val ez=pz+cos(yaw)*cos(pitch)*camZoom
         Matrix.setLookAtM(view,0,ex,eyeY,ez,px,py+.75f,pz,0f,1f,0f);Matrix.multiplyMM(vp,0,proj,0,view,0)
         GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).0072f else if(rainOn).0092f else .0060f)
         val fcd=when(world){0->floatArrayOf(.64f,.72f,.79f);1->floatArrayOf(.60f,.66f,.84f);else->floatArrayOf(.62f,.77f,.64f)};val fcn=when(world){0->floatArrayOf(.15f,.19f,.27f);1->floatArrayOf(.17f,.20f,.32f);else->floatArrayOf(.13f,.19f,.23f)};GLES20.glUniform3f(uFogColor,fcd[0]+(fcn[0]-fcd[0])*nightF,fcd[1]+(fcn[1]-fcd[1])*nightF,fcd[2]+(fcn[2]-fcd[2])*nightF);GLES20.glUniform1i(uTex,0)
 
         drawSky(ex,eyeY,ez,if(night)texSkyNight else texSkyDay)
+        if(boltT>0f){val fl=boltT/.32f;val bgy=ground(boltX,boltZ);box(boltX,bgy+26f,boltZ,.14f,26f,.14f,1f,1f,.92f,0,fl*1.4f);sph(boltX,bgy+.8f,boltZ,1.4f+fl*.8f,.8f,.85f,1f,0,fl)}
         if(nightF>.02f){
             for(i in 0 until 46){val sa=hsh(i,21f)*6.2832f;val el=.18f+hsh(i,22f)*.55f;val d=86f;sph(ex+cos(sa)*cos(el)*d,eyeY+sin(el)*d*.75f+6f,ez+sin(sa)*cos(el)*d,.22f+hsh(i,23f)*.2f,1f,.98f,.92f,0,1f,nightF*(.45f+hsh(i,24f)*.55f))}
             sph(ex+sin(t*.016f)*64f,eyeY+46f,ez+cos(t*.016f)*64f,3.6f,.96f,.94f,.84f,0,.7f,nightF)
@@ -625,6 +627,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             for(i in 0 until 14){val x=hsh(i,15f)*90f-45f;val z=hsh(i,16f)*80f-40f;val gy=ground(x,z,w);box(x,gy+.17f,z,.08f,.18f,.08f,.88f,.83f,.72f);sph(x,gy+.38f,z,.21f,.82f,.16f,.13f)}
             for(i in 14 until 22){val x=hsh(i,23f)*96f-48f;val z=hsh(i,24f)*86f-43f;val gy=ground(x,z,w);val cc=arrayOf(floatArrayOf(.88f,.30f,.24f),floatArrayOf(.90f,.72f,.22f),floatArrayOf(.80f,.44f,.80f))[i%3];box(x,gy+.12f,z,.06f,.13f,.06f,.92f,.88f,.78f);sph(x,gy+.28f,z,.16f+hsh(i,25f)*.09f,cc[0],cc[1],cc[2],0,.35f)}
             for(i in 0 until 6){val x=sin(t*.5f+i*1.1f)*24f+i*3.5f-9f;val z=cos(t*.4f+i*.9f)*22f;val y=ground(x,z,w)+1.2f+sin(t*2.2f+i)*.4f;sph(x,y,z,.05f,.98f,.80f,.25f,0,1f);sph(x+.09f,y,z,.04f,.98f,.80f,.25f,0,1f)}
+            for(i in 0 until 12){val lx=sin(t*.23f+i*2.1f)*22f+i*5f-30f;val lz=cos(t*.31f+i*.9f)*20f-5f;val gy3=ground(lx,lz,2);val frac=(t*.42f+i*.131f)%1f;box(lx,gy3+4.2f-frac*4.2f,lz,.17f,.03f,.11f,.58f,.40f,.16f,texLeaves)}
         }
     }
     internal fun restoreState(sv:String){try{val p=sv.split("|");if(p.size<7)return;world=p[0].toInt().coerceIn(0,2);px=p[1].toFloat().coerceIn(-60f,60f);py=p[2].toFloat().coerceIn(1.1f,34f);pz=p[3].toFloat().coerceIn(-60f,60f);life=p[4].toFloat().coerceIn(1f,100f);mana=p[5].toFloat().coerceIn(0f,100f);flying=p[6].toBoolean();if(p.size>=8)bossTier=(p[7].toIntOrNull()?:0).coerceIn(0,20);spawnGrace=5f;portalCooldown=2f;spell="Partie restaur\u00e9e";sfx("amb"+world)}catch(_:Throwable){}}
@@ -696,10 +699,11 @@ private class V07Audio(ctx:android.content.Context){
             gen("chime",22050,.55,0.0){t->val e=t/.55;(Math.sin(6.283185307179586*880.0*t)*.3+Math.sin(6.283185307179586*1318.5*t)*.22+Math.sin(6.283185307179586*1760.0*t)*.12)*Math.exp(-4.5*e)}
             lp=0.0;gen("kill",22050,.42,0.0){t->val e=t/.42;val env=Math.exp(-5.0*e);(Math.sin(6.283185307179586*131.0*t)*.5+(Math.sin(6.283185307179586*659.25*t)*.2+(rnd(t*773.0,10.0)*2.0-1.0)*.2*Math.exp(-22.0*e))*Math.exp(-14.0*e))*env}
             lp=0.0;gen("slam",22050,.5,0.0){t->val e=t/.5;val env=Math.exp(-5.0*e);(Math.sin(6.283185307179586*54.0*t)*.9+(rnd(t*733.0,11.0)*2.0-1.0)*.25*Math.exp(-28.0*e))*env}
+            lp=0.0;gen("thunder",22050,1.5,0.0){t->val e=t/1.5;val n=rnd(t*311.0,12.0)*2.0-1.0;lp+=.03*(n-lp);lp*1.9*Math.exp(-2.2*e)}
             lp=0.0;gen("amb0",22050,7.0,.8){t->val n=rnd(t*509.0,6.0)*2.0-1.0;lp+=.045*(n-lp);lp*1.8*(.55+.45*Math.sin(6.283185307179586*t*2.0/7.0))}
             gen("amb1",22050,8.0,0.0){t->val e=t/8.0;val tr=.6+.4*Math.sin(6.283185307179586*e*3.0);(Math.sin(6.283185307179586*110.0*t)*.2+Math.sin(6.283185307179586*165.0*t)*.14+Math.sin(6.283185307179586*220.0*t)*.11+Math.sin(6.283185307179586*330.0*t)*.06)*tr}
             lp=0.0;gen("amb2",22050,9.0,1.0){t->val n=rnd(t*467.0,7.0)*2.0-1.0;lp+=.05*(n-lp);var v=lp*.55;val bt=t*3.0;val bi=Math.floor(bt).toInt();val ph=bt-bi;if(rnd(bi.toDouble(),8.0)>.7&&ph<.09){val f=1700.0+rnd(bi.toDouble(),9.0)*1800.0;v+=Math.sin(6.283185307179586*f*ph)*Math.exp(-38.0*ph)*.24};v}
-            for(k in arrayOf("spell","dash","portal","hit","step","flight","chime","kill","slam"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
+            for(k in arrayOf("spell","dash","portal","hit","step","flight","chime","kill","slam","thunder"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
         }catch(_:Throwable){}
     }
     fun play(name:String,rate:Float=1f){try{val id=ids[name]?:return;pool.play(id,1f,1f,1,0,rate)}catch(_:Throwable){}}
