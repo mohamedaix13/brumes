@@ -34,7 +34,8 @@ private data class V07Hud(
     val flying:Boolean,
     val enemies:Int,
     val spell:String,
-    val kills:Int
+    val kills:Int,
+    val level:Int
 )
 
 class GameActivityV07 : Activity() {
@@ -62,14 +63,22 @@ class GameActivityV07 : Activity() {
        super.onCreate(savedInstanceState)
         try{Thread.setDefaultUncaughtExceptionHandler{t,e->
             try{
-                try{java.io.File(filesDir,"crash.log").writeText("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+"\nAndroid : "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nEcran : "+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+"\nThread : "+t.name+"\nErreur : "+e+"\n\n"+e.stackTraceToString())}catch(_:Throwable){}
+                try{java.io.File(filesDir,"crash.log").writeText("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+"
+Android : "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")
+Ecran : "+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+"
+Thread : "+t.name+"
+Erreur : "+e+"
+
+"+e.stackTraceToString())}catch(_:Throwable){}
                 if(android.os.Looper.getMainLooper().getThread()!=Thread.currentThread()){
                     try{
                         runOnUiThread{
                             try{
                                 android.app.AlertDialog.Builder(this@GameActivityV07)
                                     .setTitle("Brumes s'est arrêté")
-                                    .setMessage((e.toString()+"\n\n"+e.stackTraceToString()).take(2000))
+                                    .setMessage((e.toString()+"
+
+"+e.stackTraceToString()).take(2000))
                                     .setCancelable(false)
                                     .setPositiveButton("Fermer"){_,_->try{finishAffinity()}catch(_:Throwable){};Runtime.getRuntime().exit(0)}
                                     .show()
@@ -87,10 +96,10 @@ class GameActivityV07 : Activity() {
         window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
         root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
         game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
-        audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else a.play(n);if(n=="hit")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
+        audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.8.4",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.8.5",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -115,11 +124,19 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.4 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · ${s.enemies} ennemis · ${s.kills} kills · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.8.5 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}
+Vie [${bar(s.life)}] ${s.life}
+Mana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
-                val tv=TextView(this).apply{textSize=13f;setTextColor(0xFFF5F2EA.toInt());setPadding(60,50,60,50);text="Brumes n'a pas pu démarrer sur cet appareil.\n\nAppareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+", Android "+android.os.Build.VERSION.RELEASE+")\n\n"+err+"\n\n"+err.stackTraceToString().take(1800)}
+                val tv=TextView(this).apply{textSize=13f;setTextColor(0xFFF5F2EA.toInt());setPadding(60,50,60,50);text="Brumes n'a pas pu démarrer sur cet appareil.
+
+Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+", Android "+android.os.Build.VERSION.RELEASE+")
+
+"+err+"
+
+"+err.stackTraceToString().take(1800)}
                 setContentView(android.widget.ScrollView(this).apply{addView(tv);setBackgroundColor(0xFF070B10.toInt())})
             }catch(_:Throwable){try{finish()}catch(_:Throwable){}}
             return
@@ -168,7 +185,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.8.4 · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.8.5 · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -254,7 +271,8 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0
+    private fun diffMult()=min(1.4f,1f+level*.08f)
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
         arrayOf(floatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
@@ -408,13 +426,13 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         cast(selected,i);selected=-1
     }
     private fun cast(a:Int,b:Int){
-        if(mana<8)return;mana=max(0f,mana-8f);sfx("spell")
+        if(mana<8)return;mana=max(0f,mana-8f);sfx("spell"+min(3,level))
         val col=when{a==0&&b==0->floatArrayOf(1f,.22f,.05f);a==1&&b==1->floatArrayOf(.08f,.55f,1f);a==2&&b==2->floatArrayOf(.72f,.85f,1f);a==3&&b==3->floatArrayOf(.7f,.48f,.25f);setOf(a,b)==setOf(0,3)->floatArrayOf(1f,.24f,.03f);setOf(a,b)==setOf(1,2)->floatArrayOf(.55f,.9f,1f);a==4&&b==4->floatArrayOf(1f,.92f,.2f);a==5&&b==5->floatArrayOf(.6f,.63f,.68f);a==6&&b==6->floatArrayOf(1f,.96f,.8f);else->floatArrayOf(.85f,.7f,.95f)}
         burst(px+sin(yaw)*2f,py+.7f,pz-cos(yaw)*2f,col[0],col[1],col[2],36)
         val foudre=(a==4||b==4);val brume=(a==5||b==5);val lumiere=(a==6||b==6)
         for(m in mobs[world])if(!m.friendly){val d=hypot(m.x-px,m.z-pz)
             val touch=if(foudre)d<20f&&d>.1f&&((m.x-px)*sin(yaw)-(m.z-pz)*cos(yaw))/d>.45f else d<8.5f
-            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(100f,mana+8f);kills++;sfx("kill")}}}
+            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(100f,mana+8f);kills++;level=kills/5;sfx("kill")}}}
         if(lumiere)life=min(100f,life+18f)
     }
     private fun burst(x:Float,y:Float,z:Float,r:Float,g:Float,b:Float,count:Int){
@@ -436,13 +454,13 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=if(m.brute)170f else 100f}
             m.phase+=dt*(if(m.friendly).38f else if(m.brute).3f else .62f);m.cooldown=max(0f,m.cooldown-dt)
             val d=hypot(px-m.x,pz-m.z)
-            if(!m.friendly&&d<10f&&spawnGrace<=0){val sp=if(m.brute).72f else 1.35f;val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*sp*dt;m.z+=uz*sp*dt;if(d<(if(m.brute)2.6f else 2.15f)&&m.cooldown<=0){life-=(if(m.brute)6f else 3.5f);m.cooldown=if(m.brute)1.6f else 1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
+            if(!m.friendly&&d<10f&&spawnGrace<=0){val sp=(if(m.brute).72f else 1.35f)*diffMult();val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*sp*dt;m.z+=uz*sp*dt;if(d<(if(m.brute)2.6f else 2.15f)&&m.cooldown<=0){life-=(if(m.brute)6f else 3.5f);m.cooldown=(if(m.brute)1.6f else 1.25f)/diffMult();burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
             else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
         }
-        if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;spell="Réapparition"}
+        if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;kills/=2;level=kills/5;spell="Réapparition"}
         for(p in picks){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.15f){if(p.kind==0)life=min(100f,life+25f) else mana=min(100f,mana+40f);p.cd=60f;sfx("chime");burst(p.x,ground(p.x,p.z)+1f,p.z,if(p.kind==0).95f else .35f,if(p.kind==0).4f else .6f,1f,14)}}
         checkPortals()
-        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills))}
+        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills,level))}
         snap=""+world+"|"+px+"|"+py+"|"+pz+"|"+life+"|"+mana+"|"+flying
     }
 
@@ -651,7 +669,7 @@ private class V07Audio(ctx:android.content.Context){
             for(k in arrayOf("spell","dash","portal","hit","step","flight","chime","kill"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
         }catch(_:Throwable){}
     }
-    fun play(name:String){try{val id=ids[name]?:return;pool.play(id,1f,1f,1,0,1f)}catch(_:Throwable){}}
+    fun play(name:String,rate:Float=1f){try{val id=ids[name]?:return;pool.play(id,1f,1f,1,0,rate)}catch(_:Throwable){}}
     fun setWorld(w:Int){
         if(ambW==w)return;ambW=w
         try{amb?.release()}catch(_:Throwable){};amb=null
