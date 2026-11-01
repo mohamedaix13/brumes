@@ -93,7 +93,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit"||n=="slam")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.9.4",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.9.5",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(76),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -118,7 +118,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.9.4 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
+        game.onHud={s->hud.text="BRUMES 0.9.5 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -171,7 +171,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.9.4 · CORRECTIF : projectiles des boss enfin visibles (orbes violet/cyan + ombre au sol pour les esquiver) · arc-en-ciel après la pluie · âmes lumineuses des vaincus qui s'élèvent · vie sauvage : lapins dans les Brumes, cerfs dans l'île forêt · étoiles filantes la nuit · les ennemis flashent quand tu les touches · progression (vie max/mana max/niveau/victoires) affichée au menu · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.9.5 · 3e BOSS : la DRYADE ÉTERNELLE dans l'île forêt (cercle runique à l'est : salves d'épines, coups de racines, appelle des esprits de la forêt ; Fleur d'Éternité = +10% vitesse permanente) · projectiles visibles · âmes lumineuses des vaincus qui s'élèvent · vie sauvage : lapins dans les Brumes, cerfs dans l'île forêt · étoiles filantes la nuit · les ennemis flashent quand tu les touches · progression (vie max/mana max/niveau/victoires) affichée au menu · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -260,7 +260,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private var boltT=0f;private var boltCd=0f;private var boltX=0f;private var boltZ=0f;private val chests=java.util.ArrayList<V07Pick>();private var maxLife=100f;private var boss2On=false;private var boss2Hp=0f;private var boss2Max=550f;private var boss2X=0f;private var boss2Z=0f;private var boss2Ph=0f;private var boss2Atk=0f;private var boss2Blink=0f;private var boss2ShotT=0f;private var boss2Tier=0;private var boss2Cd=0f;private var maxMana=100f;private var meteorT=8f;private var arcT=0f
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private var boltT=0f;private var boltCd=0f;private var boltX=0f;private var boltZ=0f;private val chests=java.util.ArrayList<V07Pick>();private var maxLife=100f;private var boss2On=false;private var boss2Hp=0f;private var boss2Max=550f;private var boss2X=0f;private var boss2Z=0f;private var boss2Ph=0f;private var boss2Atk=0f;private var boss2Blink=0f;private var boss2ShotT=0f;private var boss2Tier=0;private var boss2Cd=0f;private var maxMana=100f;private var meteorT=8f;private var arcT=0f;private var boss3On=false;private var boss3Hp=0f;private var boss3Max=640f;private var boss3X=0f;private var boss3Z=0f;private var boss3Ph=0f;private var boss3Atk=0f;private var boss3ShotT=0f;private var boss3Tier=0;private var boss3Cd=0f;private var boss3Call=0f;private var speedMult=1f
     private fun diffMult()=min(1.4f,1f+level*.08f)
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
@@ -400,7 +400,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
 
     fun zoom(v:Float){camZoom=(camZoom+v).coerceIn(6.5f,16f)}
-    fun statLine()="vie max "+maxLife.toInt()+"/150 · mana max "+maxMana.toInt()+"/150 · niveau "+level+" · "+kills+" victoires"
+    fun statLine()="vie max "+maxLife.toInt()+"/150 · mana max "+maxMana.toInt()+"/150 · vitesse +"+((speedMult-1f)*100f).toInt()+"% · niveau "+level+" · "+kills+" victoires"
     fun toggleFlight(){flying=!flying;flyBoost=if(flying)7.5f else 0f;spell=if(flying)"Transplanage" else "Atterrissage";burst(px,py,pz,.12f,.12f,.16f,18);sfx("flight")}
     fun dash(){
         val f=-my;val s=mx;var dx=sin(yaw)*f+cos(yaw)*s;var dz=-cos(yaw)*f+sin(yaw)*s
@@ -424,6 +424,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         for(m in mobs[world])if(!m.friendly){val d=hypot(m.x-px,m.z-pz)
             val touch=if(foudre)d<20f&&d>.1f&&((m.x-px)*sin(yaw)-(m.z-pz)*cos(yaw))/d>.45f else d<8.5f
             if(touch){m.hitFx=.3f;m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(maxMana,mana+8f);kills++;level=kills/5;sfx("kill");sparks+=V07Spark(m.x,ground(m.x,m.z)+1.2f,m.z,0f,1.5f,0f,1.5f,.78f,.88f,1f,.085f)}}}
+        if(boss3On&&world==2){val d=hypot(boss3X-px,boss3Z-pz);val touch=if(foudre)d<24f else d<11f;if(touch){boss3Hp-=when{foudre->50f;brume->24f;lumiere->16f;else->36f};burst(boss3X,ground(boss3X,boss3Z,2)+2f,boss3Z,col[0],col[1],col[2],12)}}
         if(boss2On&&world==1){val d=hypot(boss2X-px,boss2Z-pz);val touch=if(foudre)d<24f else d<11f;if(touch){boss2Hp-=when{foudre->48f;brume->24f;lumiere->16f;else->35f};burst(boss2X,ground(boss2X,boss2Z,1)+2f,boss2Z,col[0],col[1],col[2],12)}}
         if(bossOn&&world==0){val d=hypot(bossX-px,bossZ-pz);val touch=if(foudre)d<24f else d<10.5f;if(touch){bossHp-=when{foudre->52f;brume->26f;lumiere->14f;else->38f};burst(bossX,ground(bossX,bossZ)+2.2f,bossZ,col[0],col[1],col[2],12)}}
         if(lumiere)life=min(maxLife,life+18f)
@@ -436,7 +437,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private fun update(dt:Float){
         if(paused)return;t+=dt;portalCooldown=max(0f,portalCooldown-dt);spawnGrace=max(0f,spawnGrace-dt);mana=min(maxMana,mana+5.5f*dt)
         yaw+=lx*1.85f*dt;pitch=(pitch-ly*.8f*dt).coerceIn(-.18f,.62f)
-        val f=-my;val s=mx;val dx=sin(yaw)*f+cos(yaw)*s;val dz=-cos(yaw)*f+sin(yaw)*s;val speed=if(flying)7.4f else 5.4f
+        val f=-my;val s=mx;val dx=sin(yaw)*f+cos(yaw)*s;val dz=-cos(yaw)*f+sin(yaw)*s;val speed=(if(flying)7.4f else 5.4f)*speedMult
         px=(px+dx*speed*dt).coerceIn(-60f,60f);pz=(pz+dz*speed*dt).coerceIn(-60f,60f)
         if(flying){flyBoost=max(0f,flyBoost-14f*dt);py+=( -ly*5.3f + flyBoost)*dt;py=py.coerceIn(1.1f,34f)}else py=ground(px,pz)+1.25f
         if(dashFx>0)dashFx=max(0f,dashFx-dt);if(!flying&&(f!=0f||s!=0f)){stepT+=dt;if(stepT>.42f){stepT=0f;sfx("step")}}else stepT=0f
@@ -471,6 +472,18 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             if(boss2ShotT<=0f&&d2>2.6f&&d2<32f){boss2ShotT=if(en2)2.2f else 2.8f;val sy3=ground(boss2X,boss2Z,1)+2.2f;val nsh=if(en2)5 else 3;for(k in 0 until nsh){val sp2=9.5f;val ang=atan2(pz-boss2Z,px-boss2X)+((k-(nsh-1)/2f)*.22f);shots+=V07Shot(boss2X,sy3,boss2Z,cos(ang)*sp2,(py+.8f-sy3)*.55f,sin(ang)*sp2,3.5f,.35f,.85f,1f)};sfx("spell1")}
             if(boss2Hp<=0f){boss2On=false;boss2Tier++;boss2Cd=90f;kills+=5;level=kills/5;mana=maxMana;life=min(maxLife,life+50f);chests+=V07Pick(boss2X,boss2Z,1,4,0f);spell="Sentinelle vaincue !";sfx("kill");sfx("portal");sparks+=V07Spark(boss2X,ground(boss2X,boss2Z,1)+1.5f,boss2Z,0f,1.8f,0f,1.6f,.45f,.85f,1f,.12f);repeat(3){k->burst(boss2X+k*1.1f,ground(boss2X,boss2Z,1)+1.2f+k*.7f,boss2Z,.3f,.8f,1f,24)}}
         }
+        boss3Cd=max(0f,boss3Cd-dt)
+        if(world==2&&!boss3On&&boss3Cd<=0f&&hypot(px-20f,pz-10f)<2.6f){boss3On=true;boss3Max=640f*(1f+boss3Tier*.25f);boss3Hp=boss3Max;boss3X=20f;boss3Z=-6f;boss3Ph=0f;boss3Atk=2f;boss3ShotT=2f;boss3Call=0f;spell="LA DRYADE S'ÉVEILLE";sfx("portal");burst(20f,ground(20f,-6f,2)+1.6f,-6f,.3f,1f,.5f,42)}
+        if(boss3On&&world==2){
+            boss3Ph+=dt;boss3Atk=max(0f,boss3Atk-dt);boss3ShotT=max(0f,boss3ShotT-dt)
+            val en3=boss3Hp<boss3Max*.3f
+            val d3=hypot(px-boss3X,pz-boss3Z)
+            if(d3>3.0f){val sp=(if(en3)1.0f else .8f)*(1f+boss3Tier*.05f);boss3X+=(px-boss3X)/max(.1f,d3)*sp*dt;boss3Z+=(pz-boss3Z)/max(.1f,d3)*sp*dt}
+            if(d3<3.2f&&boss3Atk<=0f&&spawnGrace<=0f){life-=if(en3)14f else 11f;boss3Atk=if(en3)2f else 2.4f;sfx("slam");burst(px,py+.4f,pz,.3f,1f,.4f,16);burst(boss3X,ground(boss3X,boss3Z,2)+.4f,boss3Z,.25f,.7f,.2f,14)}
+            if(boss3ShotT<=0f&&d3>3.2f&&d3<30f){boss3ShotT=if(en3)2.1f else 3f;val sy4=ground(boss3X,boss3Z,2)+2.4f;val nsh3=if(en3)5 else 3;for(k in 0 until nsh3){val ang3=atan2(pz-boss3Z,px-boss3X)+((k-(nsh3-1)/2f)*.24f);shots+=V07Shot(boss3X,sy4,boss3Z,cos(ang3)*9f,(py+.8f-sy4)*.5f,sin(ang3)*9f,3.5f,.35f,1f,.45f)};sfx("spell2")}
+            if(boss3Hp<boss3Max*.6f&&boss3Call<=0f){boss3Call=1f;for(k in 0 until 2){mobs[2]+=V07Mob(boss3X+(k*2-1)*1.5f,boss3Z+2f,false,2.6f+k,60f,0f)};sfx("portal");burst(boss3X,ground(boss3X,boss3Z,2)+1f,boss3Z,.4f,1f,.5f,20)}
+            if(boss3Hp<=0f){boss3On=false;boss3Tier++;boss3Cd=90f;kills+=5;level=kills/5;mana=maxMana;life=min(maxLife,life+50f);chests+=V07Pick(boss3X,boss3Z,2,5,0f);spell="Dryade vaincue !";sfx("kill");sfx("portal");sparks+=V07Spark(boss3X,ground(boss3X,boss3Z,2)+1.5f,boss3Z,0f,1.8f,0f,1.6f,.5f,1f,.5f,.12f);repeat(3){k->burst(boss3X+k*1.1f,ground(boss3X,boss3Z,2)+1.2f+k*.7f,boss3Z,.4f,1f,.5f,24)}}
+        }
         if(world==2)shots.clear()
         val si=shots.iterator();while(si.hasNext()){val s0=si.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.life-=dt;val gy2=ground(s0.x,s0.z);if(s0.life<=0f||s0.y<gy2+.15f){burst(s0.x,s0.y,s0.z,.5f,.2f,1f,10);si.remove()}else if(hypot(px-s0.x,pz-s0.z)<1.3f&&s0.y>py-1f&&s0.y<py+2.4f){life-=6f;burst(s0.x,s0.y,s0.z,.6f,.1f,.5f,12);sfx("hit");si.remove()}}
         if(life<=0){life=maxLife;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;kills/=2;level=kills/5;spell="Réapparition"}
@@ -479,10 +492,10 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         meteorT-=dt;if(meteorT<=0f){meteorT=9f+hsh(dropC,87f)*14f;val ma=hsh(dropC,88f)*6.2832f;dropC++;val mx0=px+cos(ma)*60f;val mz0=pz+sin(ma)*60f;repeat(8){k->sparks+=V07Spark(mx0+cos(ma)*1.4f*k,py+30f-1.4f*k,mz0+sin(ma)*1.4f*k,-cos(ma)*16f,-7f,-sin(ma)*16f,.8f,1f,.97f,.85f,.08f)};while(sparks.size>150)sparks.removeAt(0)}
         if(rainOn){boltCd-=dt;boltT=max(0f,boltT-dt);if(boltCd<=0f){boltCd=3.5f+hsh(dropC,95f)*7f;boltT=.32f;boltX=px+(hsh(dropC,96f)-.5f)*70f;boltZ=pz+(hsh(dropC,97f)-.5f)*70f;dropC++;sfx("thunder");burst(boltX,ground(boltX,boltZ)+1f,boltZ,.7f,.75f,1f,18);if(hypot(px-boltX,pz-boltZ)<3.5f){life-=8f;burst(px,py+.6f,pz,.9f,.9f,1f,12)}}}else{boltT=0f}
         if(rainOn)repeat(2){val rx=px+(hsh(dropC,91f)-.5f)*46f;val rz=pz+(hsh(dropC,92f)-.5f)*46f;dropC++;sparks+=V07Spark(rx,py+9f+hsh(dropC,93f)*5f,rz,0f,-12f,0f,.85f,.55f,.65f,.9f,.045f);while(sparks.size>150)sparks.removeAt(0)}
-        for(p in chests){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.45f){if(p.kind==3){maxLife=min(150f,maxLife+10f);life=min(life+30f,maxLife);p.cd=999999f;spell="Cœur du Gardien !"}else if(p.kind==4){maxMana=min(150f,maxMana+10f);mana=min(mana+30f,maxMana);p.cd=999999f;spell="Éclat d'Éther !"}else{life=min(maxLife,life+40f);mana=min(maxMana,mana+40f);p.cd=120f;spell="Trésor !"};sfx("chime");burst(p.x,ground(p.x,p.z)+.8f,p.z,.95f,.8f,.25f,20)}}
+        for(p in chests){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.45f){if(p.kind==3){maxLife=min(150f,maxLife+10f);life=min(life+30f,maxLife);p.cd=999999f;spell="Cœur du Gardien !"}else if(p.kind==4){maxMana=min(150f,maxMana+10f);mana=min(mana+30f,maxMana);p.cd=999999f;spell="Éclat d'Éther !"}else if(p.kind==5){speedMult=min(1.3f,speedMult+.1f);p.cd=999999f;spell="Fleur d'Éternité !"}else{life=min(maxLife,life+40f);mana=min(maxMana,mana+40f);p.cd=120f;spell="Trésor !"};sfx("chime");burst(p.x,ground(p.x,p.z)+.8f,p.z,.95f,.8f,.25f,20)}}
         checkPortals()
-        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,150),mana.roundToInt().coerceIn(0,150),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills,level,if(bossOn)bossHp/bossMax*100f else if(boss2On)boss2Hp/boss2Max*100f else -1f,if(bossOn)"GARDIEN" else if(boss2On)"SENTINELLE" else ""))}
-        snap=""+world+"|"+px+"|"+py+"|"+pz+"|"+life+"|"+mana+"|"+flying+"|"+bossTier+"|"+maxLife+"|"+maxMana
+        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,150),mana.roundToInt().coerceIn(0,150),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills,level,if(bossOn)bossHp/bossMax*100f else if(boss2On)boss2Hp/boss2Max*100f else if(boss3On)boss3Hp/boss3Max*100f else -1f,if(bossOn)"GARDIEN" else if(boss2On)"SENTINELLE" else if(boss3On)"DRYADE" else ""))}
+        snap=""+world+"|"+px+"|"+py+"|"+pz+"|"+life+"|"+mana+"|"+flying+"|"+bossTier+"|"+maxLife+"|"+maxMana+"|"+speedMult
     }
 
     private fun checkPortals(){
@@ -518,7 +531,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         }
         drawTerrain()
         if(world==0)drawMainScenery() else drawImportedMap(world)
-        drawRuins();drawPortals();drawPickups();drawMobs();drawBoss();drawBoss2();drawShots();drawPlayer();drawSparks()
+        drawRuins();drawPortals();drawPickups();drawMobs();drawBoss();drawBoss2();drawBoss3();drawShots();drawPlayer();drawSparks()
     }
 
     private fun bindMesh(buf:FloatBuffer){
@@ -665,11 +678,14 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             for(i in 0 until 6){val x=sin(t*.5f+i*1.1f)*24f+i*3.5f-9f;val z=cos(t*.4f+i*.9f)*22f;val y=ground(x,z,w)+1.2f+sin(t*2.2f+i)*.4f;sph(x,y,z,.05f,.98f,.80f,.25f,0,1f);sph(x+.09f,y,z,.04f,.98f,.80f,.25f,0,1f)}
             for(i in 0 until 12){val lx=sin(t*.23f+i*2.1f)*22f+i*5f-30f;val lz=cos(t*.31f+i*.9f)*20f-5f;val gy3=ground(lx,lz,2);val frac=(t*.42f+i*.131f)%1f;box(lx,gy3+4.2f-frac*4.2f,lz,.17f,.03f,.11f,.58f,.40f,.16f,texLeaves)}
             for(i in 0 until 2){val da=t*.13f+i*3.1f;val dxx=sin(da)*26f+i*14f-7f;val dzz=cos(da*.8f)*22f-3f;val dgy=ground(dxx,dzz,2);val bob2=sin(t*2.2f+i)*.05f;box(dxx,dgy+.75f+bob2,dzz,.85f,.55f,.40f,.62f,.44f,.28f,texLog);box(dxx,dgy+1.25f+bob2,dzz-.55f,.16f,.48f,.16f,.60f,.42f,.26f,texLog);sph(dxx,dgy+1.55f+bob2,dzz-.62f,.17f,.64f,.48f,.30f,texLog);box(dxx-.18f,dgy+1.75f+bob2,dzz-.62f,.04f,.22f,.04f,.55f,.40f,.25f);box(dxx+.18f,dgy+1.75f+bob2,dzz-.62f,.04f,.22f,.04f,.55f,.40f,.25f);for(k2 in 0 until 4){box(dxx-.28f+((k2%2)*.56f),dgy+.3f+bob2,dzz+.15f-(k2/2)*.9f,.09f,.42f,.09f,.55f,.38f,.24f,texLog)}}
+            val rcx=20f;val rcz=10f;val rcy=ground(rcx,rcz,2);val rcOn=!boss3On&&boss3Cd<=0f;val rcGlow=if(rcOn).6f+.35f*sin(t*2f) else .10f
+            box(rcx,rcy+.06f,rcz,2.4f,.10f,2.4f,.13f,.22f,.13f,texMoss,rcGlow)
+            for(k in 0 until 6){val rca=k*PI.toFloat()/3f;val rsx=rcx+cos(rca)*2f;val rsz=rcz+sin(rca)*2f;val rgy2=ground(rsx,rsz,2);sph(rsx,rgy2+.35f,rsz,.20f,.30f,.30f,.28f,texStone);sph(rsx,rgy2+.75f,rsz,.08f,.45f,1f,.5f,0,rcGlow)}
         }
     }
-    internal fun restoreState(sv:String){try{val p=sv.split("|");if(p.size<7)return;world=p[0].toInt().coerceIn(0,2);px=p[1].toFloat().coerceIn(-60f,60f);py=p[2].toFloat().coerceIn(1.1f,34f);pz=p[3].toFloat().coerceIn(-60f,60f);life=p[4].toFloat().coerceIn(1f,100f);mana=p[5].toFloat().coerceIn(0f,150f);flying=p[6].toBoolean();if(p.size>=8)bossTier=(p[7].toIntOrNull()?:0).coerceIn(0,20);if(p.size>=9)maxLife=p[8].toFloatOrNull()?.coerceIn(100f,150f)?:100f;if(p.size>=10)maxMana=p[9].toFloatOrNull()?.coerceIn(100f,150f)?:100f;spawnGrace=5f;portalCooldown=2f;spell="Partie restaur\u00e9e";sfx("amb"+world)}catch(_:Throwable){}}
+    internal fun restoreState(sv:String){try{val p=sv.split("|");if(p.size<7)return;world=p[0].toInt().coerceIn(0,2);px=p[1].toFloat().coerceIn(-60f,60f);py=p[2].toFloat().coerceIn(1.1f,34f);pz=p[3].toFloat().coerceIn(-60f,60f);life=p[4].toFloat().coerceIn(1f,100f);mana=p[5].toFloat().coerceIn(0f,150f);flying=p[6].toBoolean();if(p.size>=8)bossTier=(p[7].toIntOrNull()?:0).coerceIn(0,20);if(p.size>=9)maxLife=p[8].toFloatOrNull()?.coerceIn(100f,150f)?:100f;if(p.size>=10)maxMana=p[9].toFloatOrNull()?.coerceIn(100f,150f)?:100f;if(p.size>=11)speedMult=p[10].toFloatOrNull()?.coerceIn(1f,1.3f)?:1f;spawnGrace=5f;portalCooldown=2f;spell="Partie restaur\u00e9e";sfx("amb"+world)}catch(_:Throwable){}}
     private fun drawPickups(){for((i,p) in picks.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);val y=gy+.55f+sin(t*2f+i)*.16f;if(p.kind==0)sph(p.x,y,p.z,.24f,.96f,.32f,.40f,0,.85f) else sph(p.x,y,p.z,.24f,.30f,.55f,1f,0,.85f);sph(p.x,y+.36f,p.z,.08f,1f,1f,.85f,0,.9f)}
-        for((i,p) in chests.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);if(p.kind==3){val hy=gy+.75f+sin(t*2f+i)*.18f;sph(p.x-.13f,hy+.08f,p.z,.17f,.92f,.12f,.22f,0,.85f);sph(p.x+.13f,hy+.08f,p.z,.17f,.92f,.12f,.22f,0,.85f);box(p.x,hy-.14f,p.z,.20f,.26f,.18f,.92f,.12f,.22f,0,.85f);sph(p.x,hy+.25f,p.z,.06f,1f,.9f,.6f,0,1f)}else if(p.kind==4){val hy=gy+.75f+sin(t*2f+i)*.18f;box(p.x,hy+.12f,p.z,.16f,.34f,.16f,.35f,.85f,1f,0,.85f);sph(p.x,hy+.42f,p.z,.09f,.6f,.95f,1f,0,1f);sph(p.x,hy-.14f,p.z,.09f,.6f,.95f,1f,0,1f)}else{box(p.x,gy+.30f,p.z,.55f,.28f,.40f,.62f,.44f,.15f,texLog,.25f+.15f*sin(t*2f+i));box(p.x,gy+.56f,p.z,.60f,.12f,.45f,.78f,.60f,.20f,texLog,.5f);sph(p.x,gy+.70f,p.z,.07f,.98f,.85f,.35f,0,.8f+.2f*sin(t*3f+i))}}}
+        for((i,p) in chests.withIndex()){if(p.w!=world||p.cd>0f)continue;val gy=ground(p.x,p.z);if(p.kind==3){val hy=gy+.75f+sin(t*2f+i)*.18f;sph(p.x-.13f,hy+.08f,p.z,.17f,.92f,.12f,.22f,0,.85f);sph(p.x+.13f,hy+.08f,p.z,.17f,.92f,.12f,.22f,0,.85f);box(p.x,hy-.14f,p.z,.20f,.26f,.18f,.92f,.12f,.22f,0,.85f);sph(p.x,hy+.25f,p.z,.06f,1f,.9f,.6f,0,1f)}else if(p.kind==4){val hy=gy+.75f+sin(t*2f+i)*.18f;box(p.x,hy+.12f,p.z,.16f,.34f,.16f,.35f,.85f,1f,0,.85f);sph(p.x,hy+.42f,p.z,.09f,.6f,.95f,1f,0,1f);sph(p.x,hy-.14f,p.z,.09f,.6f,.95f,1f,0,1f)}else if(p.kind==5){val hy=gy+.75f+sin(t*2f+i)*.18f;box(p.x,gy+.25f,p.z,.06f,.45f,.06f,.35f,.70f,.30f);for(k in 0 until 5){val pa=k*1.2566f;sph(p.x+cos(pa)*.15f,hy+.05f,p.z+sin(pa)*.15f,.11f,1f,.85f,.3f,0,.7f)};sph(p.x,hy+.12f,p.z,.08f,1f,.55f,.25f,0,.9f)}else{box(p.x,gy+.30f,p.z,.55f,.28f,.40f,.62f,.44f,.15f,texLog,.25f+.15f*sin(t*2f+i));box(p.x,gy+.56f,p.z,.60f,.12f,.45f,.78f,.60f,.20f,texLog,.5f);sph(p.x,gy+.70f,p.z,.07f,.98f,.85f,.35f,0,.8f+.2f*sin(t*3f+i))}}}
     private fun drawRuins(){
         for((ri,r) in ruins[world].withIndex()){
             val gy=ground(r[0],r[1]);val pulse=.35f+.25f*sin(t*2f+ri)
@@ -696,6 +712,20 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
     private fun drawMobs(){for(m in mobs[world])if(m.hp>0){drawHumanoid(m.x,m.z,m.friendly,false,m.brute);if(m.hitFx>0f)sph(m.x,ground(m.x,m.z)+1.1f,m.z,if(m.brute)1.5f else 1.1f,1f,.85f,.5f,0,.55f,.4f*m.hitFx/.3f)}}
     private fun drawShots(){for(s in shots){sph(s.x,s.y,s.z,.17f,s.r,s.g,s.b,0,1f);sph(s.x,ground(s.x,s.z)+.06f,s.z,.30f,.08f,.08f,.10f,0,.30f,.55f)}}
+    private fun drawBoss3(){
+        if(!boss3On||world!=2)return
+        val gy=ground(boss3X,boss3Z,2)+1.05f
+        val sway=sin(boss3Ph*1.1f)*.06f
+        val en=boss3Hp<boss3Max*.3f
+        sph(boss3X,gy+.25f,boss3Z,2.3f,if(en).85f else .20f,if(en).25f else .70f,.15f,0,.32f,.22f)
+        box(boss3X,gy+1.5f+sway,boss3Z,.75f,1.6f,.45f,.36f,.27f,.16f,texLog)
+        sph(boss3X,gy+3.1f+sway,boss3Z,.55f,.30f,.48f,.20f,texLeaves)
+        sph(boss3X-.5f,gy+3.5f+sway,boss3Z+.2f,.45f,.25f,.44f,.18f,texLeaves)
+        sph(boss3X+.5f,gy+3.5f+sway,boss3Z-.2f,.45f,.25f,.44f,.18f,texLeaves)
+        sph(boss3X-.16f,gy+3.05f+sway,boss3Z+.30f,.07f,if(en)1f else .5f,if(en).4f else 1f,if(en).15f else .45f,0,1f)
+        sph(boss3X+.16f,gy+3.05f+sway,boss3Z+.30f,.07f,if(en)1f else .5f,if(en).4f else 1f,if(en).15f else .45f,0,1f)
+        for(k in 0 until 4){val ba3=t*1.2f+k*1.5708f;box(boss3X+cos(ba3)*1.2f,gy+.35f,boss3Z+sin(ba3)*1.2f,.14f,.55f,.14f,.30f,.22f,.12f,texLog,.45f,.8f)}
+    }
     private fun drawPlayer(){if(flying){val bx=px-sin(yaw)*.45f;val bz=pz+cos(yaw)*.45f;val px2=cos(yaw)*.30f;val pz2=sin(yaw)*.30f;box(bx-px2,py+.85f,bz-pz2,.09f,.42f,.50f,.55f,.75f,1f,0,.4f,.6f);box(bx+px2,py+.85f,bz+pz2,.09f,.42f,.50f,.55f,.75f,1f,0,.4f,.6f)};drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
     private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,(s.life/.8f).coerceIn(0f,1f))}
 
