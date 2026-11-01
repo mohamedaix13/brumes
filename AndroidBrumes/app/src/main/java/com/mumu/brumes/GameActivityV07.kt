@@ -40,6 +40,7 @@ class GameActivityV07 : Activity() {
     private lateinit var root:FrameLayout
     private lateinit var game:BrumesV07View
     private var menu:View?=null
+    private var audio:V07Audio?=null
     private val gold=Color.rgb(228,196,126)
     private val uiScale by lazy{(minOf(resources.displayMetrics.widthPixels,resources.displayMetrics.heightPixels).toFloat()/resources.displayMetrics.density/420f).coerceIn(1f,1.5f)}
     private fun dp(v:Int)=(v*resources.displayMetrics.density*uiScale).toInt()
@@ -84,8 +85,9 @@ class GameActivityV07 : Activity() {
         window.decorView.systemUiVisibility=(View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
         root=FrameLayout(this).apply{isMotionEventSplittingEnabled=true}
         game=BrumesV07View(this);root.addView(game,FrameLayout.LayoutParams(-1,-1))
+        audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else a.play(n)}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
 
-        val hud=text("BRUMES 0.7.3",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.7.5",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -110,7 +112,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.7.3 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.7.5 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -153,8 +155,8 @@ class GameActivityV07 : Activity() {
         if(keys.remove(keyCode)){applyKeys();return true}
         return super.onKeyUp(keyCode,event)
     }
-    override fun onPause(){game.onPause();super.onPause()}
-    override fun onResume(){super.onResume();game.onResume()}
+    override fun onPause(){try{audio?.pause()}catch(_:Throwable){};game.onPause();super.onPause()}
+    override fun onResume(){super.onResume();game.onResume();try{audio?.resume()}catch(_:Throwable){}}
     @Deprecated("Deprecated in Java") override fun onBackPressed(){if(menu==null)openMenu() else closeMenu()}
     private fun closeMenu(){menu?.let{root.removeView(it)};menu=null;game.setPaused(false)}
     private fun openMenu(){
@@ -163,8 +165,10 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.7.3 · vraies textures · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.7.5 · décor enrichi · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
+        val snd=try{audio?.status()}catch(_:Throwable){null}
+        body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joysticks : déplacement et caméra. Clavier : ZQSD avancer, flèches caméra, 1-7 éléments, Espace vol, Maj esquive, F ruine. Souris : maintenir clic gauche pour avancer vers le curseur, clic droit caméra, molette zoom. Deux éléments = combinaison, les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
@@ -205,6 +209,7 @@ private class BrumesV07View(activity:Activity):GLSurfaceView(activity){
     fun flight(){queueEvent{r.toggleFlight()}}
     fun fastTravel(){queueEvent{r.fastTravel()}}
     fun setPaused(v:Boolean){queueEvent{r.paused=v}}
+    fun setSfx(f:(String)->Unit){r.sfx=f}
     private var pinch=0f
     override fun onGenericMotionEvent(e:MotionEvent):Boolean{
         if(e.actionMasked==MotionEvent.ACTION_SCROLL){r.zoom(-e.getAxisValue(MotionEvent.AXIS_VSCROLL)*.5f);return true}
@@ -241,7 +246,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private val names=arrayOf("Brumes","Cité d'Éther","Île Forêt")
 
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
-    private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f
+    private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
     private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f
     private val ruins=arrayOf(
@@ -354,7 +359,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     override fun onSurfaceCreated(gl:javax.microedition.khronos.opengles.GL10?,cfg:javax.microedition.khronos.egl.EGLConfig?){
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);GLES20.glEnable(GLES20.GL_BLEND);GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA,GLES20.GL_ONE_MINUS_SRC_ALPHA);GLES20.glEnable(GLES20.GL_CULL_FACE)
         val vs="""attribute vec3 a;attribute vec3 n;attribute vec2 uv;uniform mat4 m;uniform mat4 model;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 wp=model*vec4(a,1.0);W=wp.xyz;N=normalize(n);T=uv;gl_Position=m*vec4(a,1.0);}"""
-        val fs="""precision mediump float;uniform vec4 c;uniform vec3 eye;uniform float glow;uniform float fog;uniform vec3 fogColor;uniform float useTex;uniform float sky;uniform sampler2D tex;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 tx=texture2D(tex,T);if(sky>0.5){gl_FragColor=vec4(tx.rgb*c.rgb,1.0);return;}vec3 base=c.rgb;if(useTex>0.5){base*=mix(vec3(1.0),tx.rgb*1.45,0.92);}float d=max(dot(normalize(N),normalize(vec3(-0.35,0.82,0.42))),0.0);vec3 col=base*(0.36+d*0.76)+base*glow*0.58;float f=1.0-exp(-pow(length(W-eye)*fog,2.0));gl_FragColor=vec4(mix(col,fogColor,clamp(f,0.0,0.84)),c.a*(useTex>0.5?tx.a:1.0));}"""
+        val fs="""precision mediump float;uniform vec4 c;uniform vec3 eye;uniform float glow;uniform float fog;uniform vec3 fogColor;uniform float useTex;uniform float sky;uniform sampler2D tex;varying vec3 N;varying vec3 W;varying vec2 T;void main(){vec4 tx=texture2D(tex,T);if(sky>0.5){gl_FragColor=vec4(tx.rgb*c.rgb,1.0);return;}vec3 base=c.rgb;if(useTex>0.5){base*=mix(vec3(1.0),tx.rgb*1.28,0.55);}float d=max(dot(normalize(N),normalize(vec3(-0.35,0.82,0.42))),0.0);vec3 col=base*(0.36+d*0.76)+base*glow*0.58;float f=1.0-exp(-pow(length(W-eye)*fog,2.0));gl_FragColor=vec4(mix(col,fogColor,clamp(f,0.0,0.84)),c.a*(useTex>0.5?tx.a:1.0));}"""
         fun sh(type:Int,s:String)=GLES20.glCreateShader(type).also{GLES20.glShaderSource(it,s);GLES20.glCompileShader(it)}
         val sv=sh(GLES20.GL_VERTEX_SHADER,vs);val sf=sh(GLES20.GL_FRAGMENT_SHADER,fs);program=GLES20.glCreateProgram();GLES20.glAttachShader(program,sv);GLES20.glAttachShader(program,sf);GLES20.glLinkProgram(program);GLES20.glUseProgram(program)
         aPos=GLES20.glGetAttribLocation(program,"a");aNor=GLES20.glGetAttribLocation(program,"n");aUv=GLES20.glGetAttribLocation(program,"uv")
@@ -377,13 +382,13 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
 
     fun zoom(v:Float){camZoom=(camZoom+v).coerceIn(6.5f,16f)}
-    fun toggleFlight(){flying=!flying;flyBoost=if(flying)7.5f else 0f;spell=if(flying)"Transplanage" else "Atterrissage";burst(px,py,pz,.12f,.12f,.16f,18)}
+    fun toggleFlight(){flying=!flying;flyBoost=if(flying)7.5f else 0f;spell=if(flying)"Transplanage" else "Atterrissage";burst(px,py,pz,.12f,.12f,.16f,18);sfx("flight")}
     fun dash(){
         val f=-my;val s=mx;var dx=sin(yaw)*f+cos(yaw)*s;var dz=-cos(yaw)*f+sin(yaw)*s
         if(hypot(dx,dz)<.18f){dx=sin(yaw);dz=-cos(yaw)};val l=max(.01f,hypot(dx,dz));dx/=l;dz/=l
-        px=(px+dx*7.2f).coerceIn(-58f,58f);pz=(pz+dz*7.2f).coerceIn(-58f,58f);dashFx=.55f;burst(px,py,pz,.04f,.04f,.05f,24)
+        px=(px+dx*7.2f).coerceIn(-58f,58f);pz=(pz+dz*7.2f).coerceIn(-58f,58f);dashFx=.55f;burst(px,py,pz,.04f,.04f,.05f,24);sfx("dash")
     }
-    fun fastTravel(){val r=ruins[world][ruinIndex%3];px=r[0];pz=r[1];py=ground(px,pz)+1.3f;ruinIndex++;spell="Ruine ${ruinIndex%3+1}"}
+    fun fastTravel(){val r=ruins[world][ruinIndex%3];px=r[0];pz=r[1];py=ground(px,pz)+1.3f;ruinIndex++;spell="Ruine ${ruinIndex%3+1}";sfx("portal")}
     fun element(i:Int){
         val names=arrayOf("Feu","Eau","Air","Terre","Foudre","Brume","Lumière")
         if(selected<0){selected=i;spell="${names[i]} prêt";return}
@@ -393,7 +398,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         cast(selected,i);selected=-1
     }
     private fun cast(a:Int,b:Int){
-        if(mana<8)return;mana=max(0f,mana-8f)
+        if(mana<8)return;mana=max(0f,mana-8f);sfx("spell")
         val col=when{a==0&&b==0->floatArrayOf(1f,.22f,.05f);a==1&&b==1->floatArrayOf(.08f,.55f,1f);a==2&&b==2->floatArrayOf(.72f,.85f,1f);a==3&&b==3->floatArrayOf(.7f,.48f,.25f);setOf(a,b)==setOf(0,3)->floatArrayOf(1f,.24f,.03f);setOf(a,b)==setOf(1,2)->floatArrayOf(.55f,.9f,1f);a==4&&b==4->floatArrayOf(1f,.92f,.2f);a==5&&b==5->floatArrayOf(.6f,.63f,.68f);a==6&&b==6->floatArrayOf(1f,.96f,.8f);else->floatArrayOf(.85f,.7f,.95f)}
         burst(px+sin(yaw)*2f,py+.7f,pz-cos(yaw)*2f,col[0],col[1],col[2],36)
         val foudre=(a==4||b==4);val brume=(a==5||b==5);val lumiere=(a==6||b==6)
@@ -413,13 +418,13 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val f=-my;val s=mx;val dx=sin(yaw)*f+cos(yaw)*s;val dz=-cos(yaw)*f+sin(yaw)*s;val speed=if(flying)7.4f else 5.4f
         px=(px+dx*speed*dt).coerceIn(-60f,60f);pz=(pz+dz*speed*dt).coerceIn(-60f,60f)
         if(flying){flyBoost=max(0f,flyBoost-14f*dt);py+=( -ly*5.3f + flyBoost)*dt;py=py.coerceIn(1.1f,34f)}else py=ground(px,pz)+1.25f
-        if(dashFx>0)dashFx=max(0f,dashFx-dt)
+        if(dashFx>0)dashFx=max(0f,dashFx-dt);if(!flying&&(f!=0f||s!=0f)){stepT+=dt;if(stepT>.42f){stepT=0f;sfx("step")}}else stepT=0f
         val iter=sparks.iterator();while(iter.hasNext()){val s0=iter.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.vy+=.18f*dt;s0.life-=dt;if(s0.life<=0)iter.remove()}
         for(m in mobs[world]){
             if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=100f}
             m.phase+=dt*(if(m.friendly).38f else .62f);m.cooldown=max(0f,m.cooldown-dt)
             val d=hypot(px-m.x,pz-m.z)
-            if(!m.friendly&&d<10f&&spawnGrace<=0){val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*1.35f*dt;m.z+=uz*1.35f*dt;if(d<2.15f&&m.cooldown<=0){life-=3.5f;m.cooldown=1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7)}}
+            if(!m.friendly&&d<10f&&spawnGrace<=0){val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*1.35f*dt;m.z+=uz*1.35f*dt;if(d<2.15f&&m.cooldown<=0){life-=3.5f;m.cooldown=1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
             else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
         }
         if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;spell="Réapparition"}
@@ -430,20 +435,20 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private fun checkPortals(){
         if(portalCooldown>0)return
         if(world==0){
-            if(hypot(px-24f,pz)<2.7f){world=1;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Cité d'Éther"}
-            else if(hypot(px+24f,pz)<2.7f){world=2;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Île Forêt"}
-        }else if(hypot(px,pz-18f)<2.8f){world=0;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Brumes"}
+            if(hypot(px-24f,pz)<2.7f){world=1;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Cité d'Éther";sfx("portal");sfx("amb"+world)}
+            else if(hypot(px+24f,pz)<2.7f){world=2;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Île Forêt";sfx("portal");sfx("amb"+world)}
+        }else if(hypot(px,pz-18f)<2.8f){world=0;px=0f;pz=8f;py=ground(px,pz)+1.25f;portalCooldown=2.2f;spawnGrace=4f;spell="Brumes";sfx("portal");sfx("amb"+world)}
     }
 
     override fun onDrawFrame(gl:javax.microedition.khronos.opengles.GL10?){
         val now=System.nanoTime();val dt=if(last==0L)0f else min(.033f,(now-last)/1_000_000_000f);last=now;update(dt)
-        val phase=(sin(t*.022f)+1f)*.5f;val night=phase<.22f
+        val phase=(sin(t*.022f)+1f)*.5f;val night=phase<.22f;nightF=((.45f-phase)/.45f).coerceIn(0f,1f)
         val clear=when(world){0->if(night)floatArrayOf(.025f,.045f,.085f) else floatArrayOf(.16f,.24f,.32f);1->if(night)floatArrayOf(.03f,.04f,.10f) else floatArrayOf(.18f,.25f,.36f);else->if(night)floatArrayOf(.02f,.055f,.065f) else floatArrayOf(.13f,.24f,.22f)}
         GLES20.glClearColor(clear[0],clear[1],clear[2],1f);GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT);GLES20.glUseProgram(program)
         val eyeY=py+2.4f+sin(pitch)*3.2f;val ex=px-sin(yaw)*cos(pitch)*camZoom;val ez=pz+cos(yaw)*cos(pitch)*camZoom
         Matrix.setLookAtM(view,0,ex,eyeY,ez,px,py+.75f,pz,0f,1f,0f);Matrix.multiplyMM(vp,0,proj,0,view,0)
-        GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).010f else .0085f)
-        val fc=when(world){0->floatArrayOf(.22f,.28f,.31f);1->floatArrayOf(.20f,.24f,.34f);else->floatArrayOf(.18f,.28f,.25f)};GLES20.glUniform3f(uFogColor,fc[0],fc[1],fc[2]);GLES20.glUniform1i(uTex,0)
+        GLES20.glUniform3f(uEye,ex,eyeY,ez);GLES20.glUniform1f(uFog,if(world==1).0072f else .0060f)
+        val fcd=when(world){0->floatArrayOf(.64f,.72f,.79f);1->floatArrayOf(.60f,.66f,.84f);else->floatArrayOf(.62f,.77f,.64f)};val fcn=when(world){0->floatArrayOf(.15f,.19f,.27f);1->floatArrayOf(.17f,.20f,.32f);else->floatArrayOf(.13f,.19f,.23f)};GLES20.glUniform3f(uFogColor,fcd[0]+(fcn[0]-fcd[0])*nightF,fcd[1]+(fcn[1]-fcd[1])*nightF,fcd[2]+(fcn[2]-fcd[2])*nightF);GLES20.glUniform1i(uTex,0)
 
         drawSky(ex,eyeY,ez,if(night)texSkyNight else texSkyDay)
         drawTerrain(
@@ -465,6 +470,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
     private fun box(x:Float,y:Float,z:Float,sx:Float,sy:Float,sz:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(cube,cubeCount,x,y,z,sx,sy,sz,r,g,b,a,tex,glow,0f)
     private fun sph(x:Float,y:Float,z:Float,s:Float,r:Float,g:Float,b:Float,tex:Int=0,glow:Float=0f,a:Float=1f)=drawMesh(sphere,sphereCount,x,y,z,s,s,s,r,g,b,a,tex,glow,0f)
+    private fun hsh(i:Int,s:Float):Float{val v=sin(i*127.1f+s*311.7f)*43758.5453f;return v-floor(v)}
 
     private fun drawSky(ex:Float,ey:Float,ez:Float,tex:Int){
         GLES20.glDepthMask(false);GLES20.glDisable(GLES20.GL_CULL_FACE)
@@ -486,7 +492,12 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         }
         for(i in -7..7){val z=i*3.8f;val gy=ground(0f,z);box(0f,gy+.05f,z,1.25f,.10f,1.45f,.82f,.82f,.80f,texCobble)}
         val rocks=arrayOf(floatArrayOf(-16f,8f),floatArrayOf(17f,7f),floatArrayOf(-13f,-15f),floatArrayOf(14f,-14f),floatArrayOf(-31f,-6f),floatArrayOf(29f,6f))
-        for((i,p) in rocks.withIndex()){val gy=ground(p[0],p[1]);box(p[0],gy+.45f,p[1],.65f+(i%2)*.3f,.45f,.8f,.72f,.74f,.72f,texMoss)}
+        for((i,p) in rocks.withIndex()){val gy=ground(p[0],p[1]);sph(p[0],gy+.34f,p[1],.62f+(i%2)*.28f,.60f,.63f,.60f,texMoss);sph(p[0]+.95f,gy+.16f,p[1]+.4f,.34f,.55f,.58f,.55f,texMoss)}
+        val fcol=arrayOf(floatArrayOf(.95f,.28f,.22f),floatArrayOf(.98f,.85f,.30f),floatArrayOf(.96f,.96f,.90f),floatArrayOf(.72f,.42f,.92f))
+        for(i in 0 until 46){val x=hsh(i,1f)*116f-58f;val z=hsh(i,2f)*104f-52f;if(abs(x)<2.4f)continue;val gy=ground(x,z);val c=fcol[i%4];box(x,gy+.14f,z,.045f,.15f,.045f,.30f,.55f,.24f);sph(x,gy+.31f,z,.115f,c[0],c[1],c[2]);sph(x,gy+.31f,z,.05f,.98f,.88f,.35f,0,.9f)}
+        for(i in 0 until 34){val x=hsh(i,3f)*110f-55f;val z=hsh(i,4f)*98f-49f;val gy=ground(x,z);sph(x,gy+.13f,z,.17f,.26f,.52f,.20f,texGrass);sph(x+.22f,gy+.09f,z+.12f,.12f,.30f,.56f,.24f,texGrass)}
+        for(i in 0 until 9){val x=hsh(i,5f)*100f-50f;val z=hsh(i,6f)*90f-45f;if(abs(x)<2.4f)continue;val gy=ground(x,z);sph(x,gy+.32f,z,.52f,.34f,.62f,.30f,texLeaves);sph(x+.5f,gy+.22f,z+.3f,.36f,.30f,.56f,.27f,texLeaves)}
+        if(nightF>.02f)for(i in 0 until 16){val bx=hsh(i,7f)*80f-40f;val bz=hsh(i,8f)*70f-35f;val by=ground(bx,bz)+1.1f+sin(t*1.3f+i*2.1f)*.5f;sph(bx+sin(t*.7f+i)*1.4f,by,bz+cos(t*.6f+i*1.7f)*1.4f,.06f,1f,.93f,.55f,0,1f,nightF)}
     }
     private fun drawImportedMap(w:Int){
         for(o in maps[w]){
@@ -494,9 +505,15 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
             val rr=(.55f+o.r*.55f).coerceIn(.42f,1.05f);val gg=(.55f+o.g*.55f).coerceIn(.42f,1.05f);val bb=(.55f+o.b*.55f).coerceIn(.42f,1.05f)
             box(o.x,y,o.z,max(.12f,o.sx),max(.12f,o.sy),max(.12f,o.sz),rr,gg,bb,tex)
         }
+        if(w==1){
+            for(i in 0 until 12){val x=hsh(i,11f)*90f-45f;val z=hsh(i,12f)*80f-40f;val y=ground(x,z,w)+2.2f+sin(t*1.1f+i*1.9f)*.9f;sph(x,y,z,.28f+(i%3)*.09f,.42f,.56f,.95f,texObsidian,.55f)}
+            for(i in 0 until 8){val x=hsh(i,13f)*70f-35f;val z=hsh(i,14f)*60f-30f;val y=ground(x,z,w)+1.6f+sin(t*.8f+i*2.7f)*.7f;sph(x,y,z,.07f,.55f,.75f,1f,0,1f)}
+        }
         if(w==2){
             val extra=arrayOf(floatArrayOf(-20f,-20f),floatArrayOf(-30f,10f),floatArrayOf(22f,-24f),floatArrayOf(30f,16f))
             for(p in extra){val gy=ground(p[0],p[1],w);box(p[0],gy+1.3f,p[1],.28f,1.3f,.28f,.78f,.67f,.52f,texLog);sph(p[0],gy+3.2f,p[1],1.3f,.38f,.68f,.34f,texLeaves)}
+            for(i in 0 until 14){val x=hsh(i,15f)*90f-45f;val z=hsh(i,16f)*80f-40f;val gy=ground(x,z,w);box(x,gy+.17f,z,.08f,.18f,.08f,.88f,.83f,.72f);sph(x,gy+.38f,z,.21f,.82f,.16f,.13f)}
+            for(i in 0 until 6){val x=sin(t*.5f+i*1.1f)*24f+i*3.5f-9f;val z=cos(t*.4f+i*.9f)*22f;val y=ground(x,z,w)+1.2f+sin(t*2.2f+i)*.4f;sph(x,y,z,.05f,.98f,.80f,.25f,0,1f);sph(x+.09f,y,z,.04f,.98f,.80f,.25f,0,1f)}
         }
     }
     private fun drawRuins(){
@@ -527,4 +544,54 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,
 (s.life/.8f).coerceIn(0f,1f))}
 
+}
+
+private class V07Audio(ctx:android.content.Context){
+    private val pool=android.media.SoundPool.Builder().setMaxStreams(6).setAudioAttributes(android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_GAME).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build()
+    private val ids=java.util.HashMap<String,Int>()
+    private val loaded=java.util.concurrent.atomic.AtomicInteger(0)
+    private val dir=java.io.File(ctx.cacheDir,"sfx")
+    private var amb:android.media.MediaPlayer?=null
+    private var ambW=-1
+    private var lp=0.0
+    private fun rnd(x:Double,s:Double):Double{val v=Math.sin(x*127.1+s*311.7)*43758.5453;return v-Math.floor(v)}
+    private fun putWav(f:java.io.File,sr:Int,data:ShortArray){
+        val b=java.nio.ByteBuffer.allocate(44+data.size*2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        b.put("RIFF".toByteArray());b.putInt(36+data.size*2);b.put("WAVE".toByteArray())
+        b.put("fmt ".toByteArray());b.putInt(16);b.putShort(1);b.putShort(1);b.putInt(sr);b.putInt(sr*2);b.putShort(2);b.putShort(16)
+        b.put("data".toByteArray());b.putInt(data.size*2)
+        for(v in data)b.putShort(v)
+        java.io.FileOutputStream(f).use{it.write(b.array())}
+    }
+    private fun gen(name:String,sr:Int,dur:Double,cross:Double,g:(Double)->Double){
+        val n=(sr*dur).toInt();val d=ShortArray(n)
+        for(i in 0 until n){val t=i.toDouble()/sr;val v=Math.max(-.98,Math.min(.98,g(t)));d[i]=(v*11000).toInt().toShort()}
+        if(cross>0){val m=(sr*cross).toInt();if(m>0&&m<n){for(i in 0 until m){val w=i.toDouble()/m;val j=n-m+i;d[j]=((d[j].toDouble()*(1.0-w))+(d[i].toDouble()*w)).toInt().toShort()}}}
+        putWav(java.io.File(dir,"$name.wav"),sr,d)
+    }
+    init{
+        try{
+            pool.setOnLoadCompleteListener{_,_,st->if(st==0)loaded.incrementAndGet()}
+            dir.mkdirs()
+            gen("spell",22050,.7,0.0){t->val e=t/.7;val f=480.0*Math.pow(70.0/480.0,e);(Math.sin(6.283185307179586*f*t)*.6+(rnd(t*997.0,1.0)*2.0-1.0)*.28*Math.exp(-9.0*e))*Math.exp(-3.0*e)}
+            lp=0.0;gen("dash",22050,.38,0.0){t->val e=t/.38;val n=rnd(t*719.0,2.0)*2.0-1.0;lp+=.12*(n-lp);lp*2.6*Math.sin(3.141592653589793*e)}
+            gen("portal",22050,1.3,0.0){t->val e=t/1.3;val env=Math.exp(-1.7*e);(Math.sin(6.283185307179586*523.25*t)*.32+Math.sin(6.283185307179586*659.25*t)*.26+Math.sin(6.283185307179586*783.99*t)*.2+Math.sin(6.283185307179586*1046.5*t)*.09)*env}
+            lp=0.0;gen("hit",22050,.3,0.0){t->val e=t/.3;val env=Math.exp(-8.0*e);(Math.sin(6.283185307179586*82.0*t)*.85+(rnd(t*991.0,3.0)*2.0-1.0)*.3*Math.exp(-45.0*e))*env}
+            lp=0.0;gen("step",22050,.12,0.0){t->val e=t/.12;val n=rnd(t*1301.0,4.0)*2.0-1.0;lp+=.2*(n-lp);lp*1.6*Math.exp(-13.0*e)}
+            lp=0.0;gen("flight",22050,.7,0.0){t->val e=t/.7;val n=rnd(t*677.0,5.0)*2.0-1.0;lp+=.08*(n-lp);(Math.sin(6.283185307179586*(190.0+520.0*e)*t)*.2+lp*1.2)*Math.sin(3.141592653589793*e)}
+            lp=0.0;gen("amb0",22050,7.0,.8){t->val n=rnd(t*509.0,6.0)*2.0-1.0;lp+=.045*(n-lp);lp*1.8*(.55+.45*Math.sin(6.283185307179586*t*2.0/7.0))}
+            gen("amb1",22050,8.0,0.0){t->val e=t/8.0;val tr=.6+.4*Math.sin(6.283185307179586*e*3.0);(Math.sin(6.283185307179586*110.0*t)*.2+Math.sin(6.283185307179586*165.0*t)*.14+Math.sin(6.283185307179586*220.0*t)*.11+Math.sin(6.283185307179586*330.0*t)*.06)*tr}
+            lp=0.0;gen("amb2",22050,9.0,1.0){t->val n=rnd(t*467.0,7.0)*2.0-1.0;lp+=.05*(n-lp);var v=lp*.55;val bt=t*3.0;val bi=Math.floor(bt).toInt();val ph=bt-bi;if(rnd(bi.toDouble(),8.0)>.7&&ph<.09){val f=1700.0+rnd(bi.toDouble(),9.0)*1800.0;v+=Math.sin(6.283185307179586*f*ph)*Math.exp(-38.0*ph)*.24};v}
+            for(k in arrayOf("spell","dash","portal","hit","step","flight"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
+        }catch(_:Throwable){}
+    }
+    fun play(name:String){try{val id=ids[name]?:return;pool.play(id,1f,1f,1,0,1f)}catch(_:Throwable){}}
+    fun setWorld(w:Int){
+        if(ambW==w)return;ambW=w
+        try{amb?.release()}catch(_:Throwable){};amb=null
+        try{val p=android.media.MediaPlayer();p.setDataSource(java.io.File(dir,"amb"+w+".wav").path);p.isLooping=true;p.setVolume(.32f,.32f);p.prepare();p.start();amb=p}catch(_:Throwable){amb=null}
+    }
+    fun pause(){try{amb?.pause()}catch(_:Throwable){}}
+    fun resume(){try{amb?.start()}catch(_:Throwable){}}
+    fun status()=loaded.get().toString()+"/"+ids.size+" sons"
 }
