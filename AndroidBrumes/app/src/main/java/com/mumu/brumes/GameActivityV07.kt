@@ -33,7 +33,8 @@ private data class V07Hud(
     val world:String,
     val flying:Boolean,
     val enemies:Int,
-    val spell:String
+    val spell:String,
+    val kills:Int
 )
 
 class GameActivityV07 : Activity() {
@@ -88,7 +89,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else a.play(n);if(n=="hit")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.8.1",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.8.2",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(62),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -113,7 +114,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.1 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.8.2 · ${s.world}\nVie ${s.life}   Mana ${s.mana}   ${if(s.flying)"VOL" else "SOL"}\n${s.enemies} ennemis · ${s.kills} kills · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -166,7 +167,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.8.1 · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.8.2 · brutes dans les mondes 1 & 2 · compteur de kills (+8 mana par ennemi tué) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -196,7 +197,7 @@ private class V07Stick(activity:Activity,val out:(Float,Float)->Unit):View(activ
 }
 
 private data class V07Obj(val x:Float,val y:Float,val z:Float,val sx:Float,val sy:Float,val sz:Float,val r:Float,val g:Float,val b:Float)
-private data class V07Mob(var x:Float,var z:Float,val friendly:Boolean,var phase:Float,var hp:Float=100f,var cooldown:Float=0f)
+private data class V07Mob(var x:Float,var z:Float,val friendly:Boolean,var phase:Float,var hp:Float=100f,var cooldown:Float=0f,val brute:Boolean=false)
 private data class V07Spark(var x:Float,var y:Float,var z:Float,var vx:Float,var vy:Float,var vz:Float,var life:Float,val r:Float,val g:Float,val b:Float,val size:Float)
 private data class V07Pick(var x:Float,var z:Float,val w:Int,val kind:Int,var cd:Float)
 
@@ -252,7 +253,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
         arrayOf(floatArrayOf(-28f,18f),floatArrayOf(22f,-24f),floatArrayOf(34f,8f)),
@@ -384,6 +385,8 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private fun seedMobs(){
         val pos=arrayOf(arrayOf(floatArrayOf(-16f,-16f),floatArrayOf(16f,-18f),floatArrayOf(21f,13f),floatArrayOf(-22f,18f),floatArrayOf(4f,25f)),arrayOf(floatArrayOf(-18f,14f),floatArrayOf(18f,-14f),floatArrayOf(24f,18f),floatArrayOf(-25f,-18f),floatArrayOf(6f,28f)),arrayOf(floatArrayOf(-18f,-12f),floatArrayOf(18f,14f),floatArrayOf(26f,-16f),floatArrayOf(-24f,19f),floatArrayOf(8f,25f)))
         for(w in 0..2){for(i in pos[w].indices){val p=pos[w][i];mobs[w]+=V07Mob(p[0],p[1],i==4,i*.9f)}}
+        val brutes=arrayOf(arrayOf(-9f,-26f,31f,-10f),arrayOf(-13f,-7f,15f,25f))
+        for(w in 0..1){for(i in 0 until 2){mobs[w]+=V07Mob(brutes[w][i*2],brutes[w][i*2+1],false,2.6f+i*1.3f,170f,0f,true)}}
     }
 
     fun zoom(v:Float){camZoom=(camZoom+v).coerceIn(6.5f,16f)}
@@ -409,7 +412,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val foudre=(a==4||b==4);val brume=(a==5||b==5);val lumiere=(a==6||b==6)
         for(m in mobs[world])if(!m.friendly){val d=hypot(m.x-px,m.z-pz)
             val touch=if(foudre)d<20f&&d>.1f&&((m.x-px)*sin(yaw)-(m.z-pz)*cos(yaw))/d>.45f else d<8.5f
-            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f}}
+            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(100f,mana+8f);kills++;sfx("kill")}}}
         if(lumiere)life=min(100f,life+18f)
     }
     private fun burst(x:Float,y:Float,z:Float,r:Float,g:Float,b:Float,count:Int){
@@ -426,16 +429,16 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(dashFx>0)dashFx=max(0f,dashFx-dt);if(!flying&&(f!=0f||s!=0f)){stepT+=dt;if(stepT>.42f){stepT=0f;sfx("step")}}else stepT=0f
         val iter=sparks.iterator();while(iter.hasNext()){val s0=iter.next();s0.x+=s0.vx*dt;s0.y+=s0.vy*dt;s0.z+=s0.vz*dt;s0.vy+=.18f*dt;s0.life-=dt;if(s0.life<=0)iter.remove()}
         for(m in mobs[world]){
-            if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=100f}
-            m.phase+=dt*(if(m.friendly).38f else .62f);m.cooldown=max(0f,m.cooldown-dt)
+            if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=if(m.brute)170f else 100f}
+            m.phase+=dt*(if(m.friendly).38f else if(m.brute).3f else .62f);m.cooldown=max(0f,m.cooldown-dt)
             val d=hypot(px-m.x,pz-m.z)
-            if(!m.friendly&&d<10f&&spawnGrace<=0){val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*1.35f*dt;m.z+=uz*1.35f*dt;if(d<2.15f&&m.cooldown<=0){life-=3.5f;m.cooldown=1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
+            if(!m.friendly&&d<10f&&spawnGrace<=0){val sp=if(m.brute).72f else 1.35f;val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*sp*dt;m.z+=uz*sp*dt;if(d<(if(m.brute)2.6f else 2.15f)&&m.cooldown<=0){life-=(if(m.brute)6f else 3.5f);m.cooldown=if(m.brute)1.6f else 1.25f;burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
             else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
         }
         if(life<=0){life=100f;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;spell="Réapparition"}
         for(p in picks){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.15f){if(p.kind==0)life=min(100f,life+25f) else mana=min(100f,mana+40f);p.cd=60f;sfx("chime");burst(p.x,ground(p.x,p.z)+1f,p.z,if(p.kind==0).95f else .35f,if(p.kind==0).4f else .6f,1f,14)}}
         checkPortals()
-        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell))}
+        hudT+=dt;if(hudT>.15f){hudT=0f;hud(V07Hud(life.roundToInt().coerceIn(0,100),mana.roundToInt().coerceIn(0,100),names[world],flying,mobs[world].count{!it.friendly&&it.hp>0},spell,kills))}
         snap=""+world+"|"+px+"|"+py+"|"+pz+"|"+life+"|"+mana+"|"+flying
     }
 
@@ -544,15 +547,16 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         }
         if(world==0){portal(24f,0f,.25f,.66f,1f);portal(-24f,0f,.72f,.35f,1f)}else portal(0f,18f,.35f,.75f,1f)
     }
-    private fun drawHumanoid(x:Float,z:Float,friendly:Boolean,player:Boolean=false){
-        val gy=if(player)py else ground(x,z)+1.05f;val body=if(player)floatArrayOf(.22f,.28f,.34f) else if(friendly)floatArrayOf(.18f,.42f,.34f) else floatArrayOf(.48f,.08f,.08f)
-        box(x,gy,z,.36f,.78f,.25f,body[0],body[1],body[2],if(player)texStone else 0)
-        sph(x,gy+1.08f,z,.34f,.84f,.70f,.58f,0)
-        box(x-.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
-        box(x+.48f,gy+.05f,z,.12f,.62f,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
-        box(x-.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0);box(x+.20f,gy-.92f,z,.13f,.42f,.14f,.10f,.11f,.13f,0)
+    private fun drawHumanoid(x:Float,z:Float,friendly:Boolean,player:Boolean=false,brute:Boolean=false){
+        val gy=if(player)py else ground(x,z)+1.05f;val body=if(player)floatArrayOf(.22f,.28f,.34f) else if(brute)floatArrayOf(.30f,.04f,.13f) else if(friendly)floatArrayOf(.18f,.42f,.34f) else floatArrayOf(.48f,.08f,.08f)
+        val k=if(brute)1.45f else 1f
+        box(x,gy+k*.32f,z,.36f*k,.78f*k,.25f*k,body[0],body[1],body[2],if(player)texStone else 0)
+        sph(x,gy+1.08f*k,z,.34f*k,if(brute).60f else .84f,if(brute).50f else .70f,if(brute).46f else .58f,0)
+        box(x-.48f*k,gy+.05f,z,.12f,.62f*k,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x+.48f*k,gy+.05f,z,.12f,.62f*k,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
+        box(x-.20f*k,gy-.92f,z,.13f,.42f*k,.14f,.10f,.11f,.13f,0);box(x+.20f*k,gy-.92f,z,.13f,.42f*k,.14f,.10f,.11f,.13f,0)
     }
-    private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly)}
+    private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly,false,m.brute)}
     private fun drawPlayer(){drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
     private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,
 (s.life/.8f).coerceIn(0f,1f))}
@@ -593,10 +597,11 @@ private class V07Audio(ctx:android.content.Context){
             lp=0.0;gen("step",22050,.12,0.0){t->val e=t/.12;val n=rnd(t*1301.0,4.0)*2.0-1.0;lp+=.2*(n-lp);lp*1.6*Math.exp(-13.0*e)}
             lp=0.0;gen("flight",22050,.7,0.0){t->val e=t/.7;val n=rnd(t*677.0,5.0)*2.0-1.0;lp+=.08*(n-lp);(Math.sin(6.283185307179586*(190.0+520.0*e)*t)*.2+lp*1.2)*Math.sin(3.141592653589793*e)}
             gen("chime",22050,.55,0.0){t->val e=t/.55;(Math.sin(6.283185307179586*880.0*t)*.3+Math.sin(6.283185307179586*1318.5*t)*.22+Math.sin(6.283185307179586*1760.0*t)*.12)*Math.exp(-4.5*e)}
+            lp=0.0;gen("kill",22050,.42,0.0){t->val e=t/.42;val env=Math.exp(-5.0*e);(Math.sin(6.283185307179586*131.0*t)*.5+(Math.sin(6.283185307179586*659.25*t)*.2+(rnd(t*773.0,10.0)*2.0-1.0)*.2*Math.exp(-22.0*e))*Math.exp(-14.0*e))*env}
             lp=0.0;gen("amb0",22050,7.0,.8){t->val n=rnd(t*509.0,6.0)*2.0-1.0;lp+=.045*(n-lp);lp*1.8*(.55+.45*Math.sin(6.283185307179586*t*2.0/7.0))}
             gen("amb1",22050,8.0,0.0){t->val e=t/8.0;val tr=.6+.4*Math.sin(6.283185307179586*e*3.0);(Math.sin(6.283185307179586*110.0*t)*.2+Math.sin(6.283185307179586*165.0*t)*.14+Math.sin(6.283185307179586*220.0*t)*.11+Math.sin(6.283185307179586*330.0*t)*.06)*tr}
             lp=0.0;gen("amb2",22050,9.0,1.0){t->val n=rnd(t*467.0,7.0)*2.0-1.0;lp+=.05*(n-lp);var v=lp*.55;val bt=t*3.0;val bi=Math.floor(bt).toInt();val ph=bt-bi;if(rnd(bi.toDouble(),8.0)>.7&&ph<.09){val f=1700.0+rnd(bi.toDouble(),9.0)*1800.0;v+=Math.sin(6.283185307179586*f*ph)*Math.exp(-38.0*ph)*.24};v}
-            for(k in arrayOf("spell","dash","portal","hit","step","flight","chime"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
+            for(k in arrayOf("spell","dash","portal","hit","step","flight","chime","kill"))try{ids[k]=pool.load(java.io.File(dir,k+".wav").path,1)}catch(_:Throwable){}
         }catch(_:Throwable){}
     }
     fun play(name:String){try{val id=ids[name]?:return;pool.play(id,1f,1f,1,0,1f)}catch(_:Throwable){}}
