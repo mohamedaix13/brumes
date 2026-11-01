@@ -63,22 +63,14 @@ class GameActivityV07 : Activity() {
        super.onCreate(savedInstanceState)
         try{Thread.setDefaultUncaughtExceptionHandler{t,e->
             try{
-                try{java.io.File(filesDir,"crash.log").writeText("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+"
-Android : "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")
-Ecran : "+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+"
-Thread : "+t.name+"
-Erreur : "+e+"
-
-"+e.stackTraceToString())}catch(_:Throwable){}
+                try{java.io.File(filesDir,"crash.log").writeText("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+"\nAndroid : "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\nEcran : "+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+"\nThread : "+t.name+"\nErreur : "+e+"\n\n"+e.stackTraceToString())}catch(_:Throwable){}
                 if(android.os.Looper.getMainLooper().getThread()!=Thread.currentThread()){
                     try{
                         runOnUiThread{
                             try{
                                 android.app.AlertDialog.Builder(this@GameActivityV07)
                                     .setTitle("Brumes s'est arrêté")
-                                    .setMessage((e.toString()+"
-
-"+e.stackTraceToString()).take(2000))
+                                    .setMessage((e.toString()+"\n\n"+e.stackTraceToString()).take(2000))
                                     .setCancelable(false)
                                     .setPositiveButton("Fermer"){_,_->try{finishAffinity()}catch(_:Throwable){};Runtime.getRuntime().exit(0)}
                                     .show()
@@ -124,19 +116,11 @@ Erreur : "+e+"
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.8.5 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}
-Vie [${bar(s.life)}] ${s.life}
-Mana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"}
+        game.onHud={s->hud.text="BRUMES 0.8.5 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"}
         setContentView(root)
         }catch(err:Throwable){
             try{
-                val tv=TextView(this).apply{textSize=13f;setTextColor(0xFFF5F2EA.toInt());setPadding(60,50,60,50);text="Brumes n'a pas pu démarrer sur cet appareil.
-
-Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+", Android "+android.os.Build.VERSION.RELEASE+")
-
-"+err+"
-
-"+err.stackTraceToString().take(1800)}
+                val tv=TextView(this).apply{textSize=13f;setTextColor(0xFFF5F2EA.toInt());setPadding(60,50,60,50);text="Brumes n'a pas pu démarrer sur cet appareil.\n\nAppareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+", Android "+android.os.Build.VERSION.RELEASE+")\n\n"+err+"\n\n"+err.stackTraceToString().take(1800)}
                 setContentView(android.widget.ScrollView(this).apply{addView(tv);setBackgroundColor(0xFF070B10.toInt())})
             }catch(_:Throwable){try{finish()}catch(_:Throwable){}}
             return
