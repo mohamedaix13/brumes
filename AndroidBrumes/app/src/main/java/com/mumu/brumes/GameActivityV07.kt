@@ -93,7 +93,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit"||n=="slam")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.9.0",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.9.1",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(76),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -118,7 +118,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.9.0 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
+        game.onHud={s->hud.text="BRUMES 0.9.1 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -171,10 +171,11 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.9.0 · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.9.1 · étoiles filantes la nuit · les ennemis flashent quand tu les touches · progression (vie max/mana max/niveau/victoires) affichée au menu · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
+        body.addView(text("Progression : "+game.stats(),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         body.addView(button("REPRENDRE",205){closeMenu()},LinearLayout.LayoutParams(dp(205),dp(46)).apply{topMargin=dp(7)})
         body.addView(text("Joysticks : déplacement et caméra. Clavier : ZQSD avancer, flèches caméra, 1-7 éléments, Espace vol, Maj esquive, F ruine. Souris : maintenir clic gauche pour avancer vers le curseur, clic droit caméra, molette zoom. Deux éléments = combinaison, les portails changent de monde.",10.5f).apply{gravity=Gravity.CENTER})
         shade.addView(body,FrameLayout.LayoutParams(dp(440),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER))
@@ -201,7 +202,7 @@ private class V07Stick(activity:Activity,val out:(Float,Float)->Unit):View(activ
 }
 
 private data class V07Obj(val x:Float,val y:Float,val z:Float,val sx:Float,val sy:Float,val sz:Float,val r:Float,val g:Float,val b:Float)
-private data class V07Mob(var x:Float,var z:Float,val friendly:Boolean,var phase:Float,var hp:Float=100f,var cooldown:Float=0f,val brute:Boolean=false)
+private data class V07Mob(var x:Float,var z:Float,val friendly:Boolean,var phase:Float,var hp:Float=100f,var cooldown:Float=0f,val brute:Boolean=false,var hitFx:Float=0f)
 private data class V07Spark(var x:Float,var y:Float,var z:Float,var vx:Float,var vy:Float,var vz:Float,var life:Float,val r:Float,val g:Float,val b:Float,val size:Float)
 private data class V07Pick(var x:Float,var z:Float,val w:Int,val kind:Int,var cd:Float)
 private data class V07Shot(var x:Float,var y:Float,var z:Float,val vx:Float,val vy:Float,val vz:Float,var life:Float)
@@ -219,6 +220,7 @@ private class BrumesV07View(activity:Activity):GLSurfaceView(activity){
     fun setPaused(v:Boolean){queueEvent{r.paused=v}}
     fun setSfx(f:(String)->Unit){r.sfx=f}
     fun getSnap():String=r.snap
+    fun stats():String=r.statLine()
     fun restore(sv:String){queueEvent{r.restoreState(sv)}}
     private var pinch=0f
     override fun onGenericMotionEvent(e:MotionEvent):Boolean{
@@ -258,7 +260,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private var texGrass=0;private var texDirt=0;private var texStone=0;private var texLog=0;private var texLeaves=0;private var texMoss=0;private var texCobble=0;private var texObsidian=0;private var texBlue=0;private var texSkyDay=0;private var texSkyNight=0
     private var world=0;private var px=0f;private var py=1.3f;private var pz=8f;private var yaw=0f;private var pitch=.20f;private var camZoom=10.5f;private var stepT=0f;internal var sfx:(String)->Unit={};private var nightF=0f;private val picks=java.util.ArrayList<V07Pick>();internal var snap=""
     private var flying=false;private var flyBoost=0f;private var life=100f;private var mana=100f;private var last=0L;private var t=0f;private var hudT=0f
-    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private var boltT=0f;private var boltCd=0f;private var boltX=0f;private var boltZ=0f;private val chests=java.util.ArrayList<V07Pick>();private var maxLife=100f;private var boss2On=false;private var boss2Hp=0f;private var boss2Max=550f;private var boss2X=0f;private var boss2Z=0f;private var boss2Ph=0f;private var boss2Atk=0f;private var boss2Blink=0f;private var boss2ShotT=0f;private var boss2Tier=0;private var boss2Cd=0f;private var maxMana=100f
+    private var selected=-1;private var spell="Aucun";private var dashFx=0f;private var portalCooldown=0f;private var spawnGrace=6f;private var kills=0;private var level=0;private var bossOn=false;private var bossHp=0f;private var bossMax=600f;private var bossX=0f;private var bossZ=-26f;private var bossPh=0f;private var bossAtk=0f;private var bossShotT=0f;private var bossTier=0;private var bossCd=0f;private val shots=mutableListOf<V07Shot>();private var rainOn=false;private var rainT=0f;private var dropC=0;private var boltT=0f;private var boltCd=0f;private var boltX=0f;private var boltZ=0f;private val chests=java.util.ArrayList<V07Pick>();private var maxLife=100f;private var boss2On=false;private var boss2Hp=0f;private var boss2Max=550f;private var boss2X=0f;private var boss2Z=0f;private var boss2Ph=0f;private var boss2Atk=0f;private var boss2Blink=0f;private var boss2ShotT=0f;private var boss2Tier=0;private var boss2Cd=0f;private var maxMana=100f;private var meteorT=8f
     private fun diffMult()=min(1.4f,1f+level*.08f)
     private val ruins=arrayOf(
         arrayOf(floatArrayOf(-30f,-18f),floatArrayOf(27f,23f),floatArrayOf(8f,-34f)),
@@ -398,6 +400,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     }
 
     fun zoom(v:Float){camZoom=(camZoom+v).coerceIn(6.5f,16f)}
+    fun statLine()="vie max "+maxLife.toInt()+"/150 · mana max "+maxMana.toInt()+"/150 · niveau "+level+" · "+kills+" victoires"
     fun toggleFlight(){flying=!flying;flyBoost=if(flying)7.5f else 0f;spell=if(flying)"Transplanage" else "Atterrissage";burst(px,py,pz,.12f,.12f,.16f,18);sfx("flight")}
     fun dash(){
         val f=-my;val s=mx;var dx=sin(yaw)*f+cos(yaw)*s;var dz=-cos(yaw)*f+sin(yaw)*s
@@ -420,7 +423,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         val foudre=(a==4||b==4);val brume=(a==5||b==5);val lumiere=(a==6||b==6)
         for(m in mobs[world])if(!m.friendly){val d=hypot(m.x-px,m.z-pz)
             val touch=if(foudre)d<20f&&d>.1f&&((m.x-px)*sin(yaw)-(m.z-pz)*cos(yaw))/d>.45f else d<8.5f
-            if(touch){m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(100f,mana+8f);kills++;level=kills/5;sfx("kill")}}}
+            if(touch){m.hitFx=.3f;m.hp-=when{foudre->46f;brume->20f;lumiere->12f;else->34f};if(brume)m.cooldown=2.5f;if(m.hp<=0){mana=min(100f,mana+8f);kills++;level=kills/5;sfx("kill")}}}
         if(boss2On&&world==1){val d=hypot(boss2X-px,boss2Z-pz);val touch=if(foudre)d<24f else d<11f;if(touch){boss2Hp-=when{foudre->48f;brume->24f;lumiere->16f;else->35f};burst(boss2X,ground(boss2X,boss2Z,1)+2f,boss2Z,col[0],col[1],col[2],12)}}
         if(bossOn&&world==0){val d=hypot(bossX-px,bossZ-pz);val touch=if(foudre)d<24f else d<10.5f;if(touch){bossHp-=when{foudre->52f;brume->26f;lumiere->14f;else->38f};burst(bossX,ground(bossX,bossZ)+2.2f,bossZ,col[0],col[1],col[2],12)}}
         if(lumiere)life=min(maxLife,life+18f)
@@ -442,7 +445,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(world==0&&campT>1.15f){campT=0f;for(r in ruins[0]){val fx=r[0]+3.4f;val fz=r[1]+2.8f;val fy=ground(fx,fz)+.55f;repeat(3){k->val a=t*2f+k*2.4f;sparks+=V07Spark(fx+sin(a)*.10f,fy,fz+cos(a)*.10f,cos(a)*.28f,.8f+hsh(k,42f)*.9f,sin(a)*.28f,.7f+hsh(k,44f)*.4f,1f,.55f+hsh(k,45f)*.25f,.12f,.055f)};while(sparks.size>140)sparks.removeAt(0)}}
         for(m in mobs[world]){
             if(m.hp<=0){m.x=(sin(m.phase*4.1f)*26f);m.z=(cos(m.phase*3.7f)*24f);m.hp=if(m.brute)170f else 100f}
-            m.phase+=dt*(if(m.friendly).38f else if(m.brute).3f else .62f);m.cooldown=max(0f,m.cooldown-dt)
+            m.phase+=dt*(if(m.friendly).38f else if(m.brute).3f else .62f);m.cooldown=max(0f,m.cooldown-dt);m.hitFx=max(0f,m.hitFx-dt)
             val d=hypot(px-m.x,pz-m.z)
             if(!m.friendly&&d<10f&&spawnGrace<=0){val sp=(if(m.brute).72f else 1.35f)*diffMult();val ux=(px-m.x)/max(.1f,d);val uz=(pz-m.z)/max(.1f,d);m.x+=ux*sp*dt;m.z+=uz*sp*dt;if(d<(if(m.brute)2.6f else 2.15f)&&m.cooldown<=0){life-=(if(m.brute)6f else 3.5f);m.cooldown=(if(m.brute)1.6f else 1.25f)/diffMult();burst(px,py+.5f,pz,.65f,.05f,.05f,7);sfx("hit")}}
             else{m.x+=cos(m.phase)*.34f*dt;m.z+=sin(m.phase*.91f)*.34f*dt}
@@ -473,6 +476,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         if(life<=0){life=maxLife;mana=max(mana,60f);px=0f;pz=8f;py=ground(px,pz)+1.25f;spawnGrace=6f;kills/=2;level=kills/5;spell="Réapparition"}
         for(p in picks){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.15f){if(p.kind==0)life=min(maxLife,life+25f) else mana=min(100f,mana+40f);p.cd=60f;sfx("chime");burst(p.x,ground(p.x,p.z)+1f,p.z,if(p.kind==0).95f else .35f,if(p.kind==0).4f else .6f,1f,14)}}
         rainT+=dt;rainOn=world==0&&rainT%75f>55f
+        meteorT-=dt;if(meteorT<=0f){meteorT=9f+hsh(dropC,87f)*14f;val ma=hsh(dropC,88f)*6.2832f;dropC++;val mx0=px+cos(ma)*60f;val mz0=pz+sin(ma)*60f;repeat(8){k->sparks+=V07Spark(mx0+cos(ma)*1.4f*k,py+30f-1.4f*k,mz0+sin(ma)*1.4f*k,-cos(ma)*16f,-7f,-sin(ma)*16f,.8f,1f,.97f,.85f,.08f)};while(sparks.size>150)sparks.removeAt(0)}
         if(rainOn){boltCd-=dt;boltT=max(0f,boltT-dt);if(boltCd<=0f){boltCd=3.5f+hsh(dropC,95f)*7f;boltT=.32f;boltX=px+(hsh(dropC,96f)-.5f)*70f;boltZ=pz+(hsh(dropC,97f)-.5f)*70f;dropC++;sfx("thunder");burst(boltX,ground(boltX,boltZ)+1f,boltZ,.7f,.75f,1f,18);if(hypot(px-boltX,pz-boltZ)<3.5f){life-=8f;burst(px,py+.6f,pz,.9f,.9f,1f,12)}}}else{boltT=0f}
         if(rainOn)repeat(2){val rx=px+(hsh(dropC,91f)-.5f)*46f;val rz=pz+(hsh(dropC,92f)-.5f)*46f;dropC++;sparks+=V07Spark(rx,py+9f+hsh(dropC,93f)*5f,rz,0f,-12f,0f,.85f,.55f,.65f,.9f,.045f);while(sparks.size>150)sparks.removeAt(0)}
         for(p in chests){if(p.cd>0f){p.cd-=dt}else if(p.w==world&&hypot(px-p.x,pz-p.z)<1.45f){if(p.kind==3){maxLife=min(150f,maxLife+10f);life=min(life+30f,maxLife);p.cd=999999f;spell="Cœur du Gardien !"}else if(p.kind==4){maxMana=min(150f,maxMana+10f);mana=min(mana+30f,maxMana);p.cd=999999f;spell="Éclat d'Éther !"}else{life=min(maxLife,life+40f);mana=min(maxMana,mana+40f);p.cd=120f;spell="Trésor !"};sfx("chime");burst(p.x,ground(p.x,p.z)+.8f,p.z,.95f,.8f,.25f,20)}}
@@ -687,7 +691,7 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
         box(x+.48f*k,gy+.05f,z,.12f,.62f*k,.12f,body[0]*.9f,body[1]*.9f,body[2]*.9f,0)
         box(x-.20f*k,gy-.92f,z,.13f,.42f*k,.14f,.10f,.11f,.13f,0);box(x+.20f*k,gy-.92f,z,.13f,.42f*k,.14f,.10f,.11f,.13f,0)
     }
-    private fun drawMobs(){for(m in mobs[world])if(m.hp>0)drawHumanoid(m.x,m.z,m.friendly,false,m.brute)}
+    private fun drawMobs(){for(m in mobs[world])if(m.hp>0){drawHumanoid(m.x,m.z,m.friendly,false,m.brute);if(m.hitFx>0f)sph(m.x,ground(m.x,m.z)+1.1f,m.z,if(m.brute)1.5f else 1.1f,1f,.85f,.5f,0,.55f,.4f*m.hitFx/.3f)}}
     private fun drawPlayer(){if(flying){val bx=px-sin(yaw)*.45f;val bz=pz+cos(yaw)*.45f;val px2=cos(yaw)*.30f;val pz2=sin(yaw)*.30f;box(bx-px2,py+.85f,bz-pz2,.09f,.42f,.50f,.55f,.75f,1f,0,.4f,.6f);box(bx+px2,py+.85f,bz+pz2,.09f,.42f,.50f,.55f,.75f,1f,0,.4f,.6f)};drawHumanoid(px,pz,true,true);if(flying||dashFx>0){for(i in 1..6){val d=i*.34f;sph(px-sin(yaw)*d,py+.55f,pz+cos(yaw)*d,.16f+i*.025f,.04f,.04f,.055f,0,.45f,.55f)}}}
     private fun drawSparks(){for(s in sparks)sph(s.x,s.y,s.z,s.size,s.r,s.g,s.b,0,.9f,(s.life/.8f).coerceIn(0f,1f))}
 
