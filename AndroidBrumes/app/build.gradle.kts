@@ -18,8 +18,8 @@ android {
         applicationId = "com.mumu.brumes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 48
-        versionName = "0.11.3"
+        versionCode = 49
+        versionName = "0.11.4"
     }
     buildTypes {
         getByName("debug") {
