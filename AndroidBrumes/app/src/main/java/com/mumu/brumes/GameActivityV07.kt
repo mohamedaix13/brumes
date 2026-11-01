@@ -93,7 +93,7 @@ class GameActivityV07 : Activity() {
         audio=try{V07Audio(this).also{a->game.setSfx{n->try{if(n.length>3&&n.startsWith("amb"))a.setWorld(n[3]-'0') else if(n.length>5&&n.startsWith("spell"))a.play("spell",1f+(n.drop(5).toIntOrNull()?:0)*.03f) else a.play(n);if(n=="hit"||n=="slam")try{getSystemService(android.os.Vibrator::class.java)?.vibrate(android.os.VibrationEffect.createOneShot(45,android.os.VibrationEffect.DEFAULT_AMPLITUDE))}catch(_:Throwable){}}catch(_:Throwable){}};a.setWorld(0)}}catch(_:Throwable){null}
         try{getSharedPreferences("brumes",0).getString("state",null)?.let{game.restore(it)}}catch(_:Throwable){}
 
-        val hud=text("BRUMES 0.11.2",10.5f).apply{background=panel(178)}
+        val hud=text("BRUMES 0.11.3",10.5f).apply{background=panel(178)}
         root.addView(hud,FrameLayout.LayoutParams(dp(235),dp(76),Gravity.TOP or Gravity.START).apply{setMargins(dp(9),dp(7),0,0)})
         root.addView(button("☰",50){openMenu()},FrameLayout.LayoutParams(dp(54),dp(42),Gravity.TOP or Gravity.END).apply{setMargins(0,dp(7),dp(9),0)})
 
@@ -118,7 +118,7 @@ class GameActivityV07 : Activity() {
         actions.addView(button("◉ Ruine",78){game.fastTravel()},LinearLayout.LayoutParams(dp(78),dp(42)).apply{topMargin=dp(4)})
         root.addView(actions,FrameLayout.LayoutParams(dp(84),FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.CENTER_VERTICAL or Gravity.END).apply{setMargins(0,0,dp(11),0)})
 
-        game.onHud={s->hud.text="BRUMES 0.11.2 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
+        game.onHud={s->hud.text="BRUMES 0.11.3 · ${s.world} · ${if(s.flying)"VOL" else "SOL"}\nVie [${bar(s.life)}] ${s.life}\nMana [${bar(s.mana)}] ${s.mana} · Niv ${s.level} · ${s.kills} victoires · ${s.enemies} ennemis · ${s.spell}"+(if(s.bossHp>=0f)"\n"+s.bossName+" [${bar(s.bossHp.roundToInt().coerceIn(0,100))}]" else "")}
         setContentView(root)
         }catch(err:Throwable){
             try{
@@ -171,7 +171,7 @@ class GameActivityV07 : Activity() {
         val shade=FrameLayout(this).apply{setBackgroundColor(0xC3000000.toInt());isClickable=true}
         val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(18),dp(14),dp(18),dp(14));background=panel(238)}
         body.addView(text("B R U M E S",24f).apply{gravity=Gravity.CENTER;setTextColor(gold)})
-        body.addView(text("0.11.2 · champignons lumineux la nuit dans l'île forêt · le renard s'assoit quand tu t'arrêtes · aube & crépuscule dorés · flash rouge à l'écran quand tu prends des dégâts · 3e BOSS : la DRYADE ÉTERNELLE dans l'île forêt (cercle runique à l'est : salves d'épines, coups de racines, appelle des esprits de la forêt ; Fleur d'Éternité = +10% vitesse permanente) · projectiles visibles · âmes lumineuses des vaincus qui s'élèvent · vie sauvage : lapins dans les Brumes, cerfs dans l'île forêt · étoiles filantes la nuit · les ennemis flashent quand tu les touches · progression (vie max/mana max/niveau/victoires) affichée au menu · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
+        body.addView(text("0.11.3 · VENT VIVANT : les arbres ondulent, l'herbe et les fleurs se balancent · champignons lumineux la nuit · le renard s'assoit quand tu t'arrêtes · flash rouge à l'écran quand tu prends des dégâts · 3e BOSS : la DRYADE ÉTERNELLE dans l'île forêt (cercle runique à l'est : salves d'épines, coups de racines, appelle des esprits de la forêt ; Fleur d'Éternité = +10% vitesse permanente) · projectiles visibles · âmes lumineuses des vaincus qui s'élèvent · vie sauvage : lapins dans les Brumes, cerfs dans l'île forêt · étoiles filantes la nuit · les ennemis flashent quand tu les touches · progression (vie max/mana max/niveau/victoires) affichée au menu · 2e BOSS : la SENTINELLE D'ÉTHER dans la Cité (obélisque cyan au sud, se téléporte autour de toi, salves d'éclats, Éclat d'Éther à sa mort = +10 mana max permanent jusqu'à 150) · Gardien ENRAGÉ (aura rouge, coups à 14) · Cœur du Gardien (+10 vie max) · ailes lumineuses en vol · ORAGE (éclairs + tonnerre) · feuilles automnales · pluie périodique · coffres au trésor : suis le chemin au sud jusqu'à l'autel violet pour l'invoquer (600 PV, masse 12 dégâts, projectiles violets, il revient plus fort à chaque défaite : +25% PV) · victoire = +5 victoires, vie +50, mana à fond · barre GARDIEN au HUD · difficulté progressive (niveau +1 tous les 5 kills : ennemis plus rapides et plus vifs, plafonné à +40%, reset doux à la réapparition) · panneaux indicateurs vers les portails (orbe orange = Cité d'Éther, orbe vert = Île Forêt) · feux de camp près des ruines · pont de pierre · monde 0 plus lisible · soleil doré le jour · oiseaux · étang animé · HUD barres vie/mana · brutes mondes 1 & 2 · kills (+8 mana) · sauvegarde auto · lune & étoiles · pick-up · sons · adapté à l'écran réel ("+resources.displayMetrics.widthPixels+"x"+resources.displayMetrics.heightPixels+") · sans 4K ni HDR · téléphone & tablette",11f).apply{gravity=Gravity.CENTER})
         body.addView(text("Appareil : "+android.os.Build.MANUFACTURER+" "+android.os.Build.MODEL+" · Android "+android.os.Build.VERSION.RELEASE,10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
         val snd=try{audio?.status()}catch(_:Throwable){null}
         body.addView(text("Sons : "+(snd?:"indisponibles"),10f).apply{gravity=Gravity.CENTER;setTextColor(Color.rgb(178,178,170))})
@@ -641,18 +641,18 @@ private class V07Renderer(private val assets:AssetManager,private val hud:(V07Hu
     private fun drawMainScenery(){
         val trees=arrayOf(floatArrayOf(-34f,-27f),floatArrayOf(-25f,14f),floatArrayOf(-14f,-30f),floatArrayOf(15f,-27f),floatArrayOf(31f,-18f),floatArrayOf(34f,15f),floatArrayOf(20f,30f),floatArrayOf(-25f,30f),floatArrayOf(5f,35f),floatArrayOf(-38f,2f),floatArrayOf(39f,2f),floatArrayOf(11f,18f))
         for((i,p) in trees.withIndex()){
-            val gy=ground(p[0],p[1]);val h=2.7f+(i%3)*.32f
+            val gy=ground(p[0],p[1]);val h=2.7f+(i%3)*.32f;val swx=sin(t*1.1f+i*1.7f)*.16f;val swz=cos(t*.9f+i*1.1f)*.13f
             box(p[0],gy+h*.55f,p[1],.34f,h*.55f,.34f,.82f,.72f,.58f,texLog)
-            sph(p[0],gy+h+1.05f,p[1],1.45f,.46f,.76f,.42f,texLeaves)
-            sph(p[0]-.85f,gy+h+.55f,p[1]+.15f,.92f,.38f,.68f,.35f,texLeaves)
-            sph(p[0]+.75f,gy+h+.68f,p[1]-.18f,.9f,.42f,.72f,.38f,texLeaves)
+            sph(p[0]+swx,gy+h+1.05f+sin(t*1.4f+i)*.05f,p[1]+swz,1.45f,.46f,.76f,.42f,texLeaves)
+            sph(p[0]-.85f+swx*.7f,gy+h+.55f,p[1]+.15f+swz*.7f,.92f,.38f,.68f,.35f,texLeaves)
+            sph(p[0]+.75f+swx*.8f,gy+h+.68f,p[1]-.18f+swz*.8f,.9f,.42f,.72f,.38f,texLeaves)
         }
         for(i in -7..7){val z=i*3.8f;val gy=ground(0f,z);box(0f,gy+.05f,z,1.25f,.10f,1.45f,.82f,.82f,.80f,texCobble)}
         val rocks=arrayOf(floatArrayOf(-16f,8f),floatArrayOf(17f,7f),floatArrayOf(-13f,-15f),floatArrayOf(14f,-14f),floatArrayOf(-31f,-6f),floatArrayOf(29f,6f))
         for((i,p) in rocks.withIndex()){val gy=ground(p[0],p[1]);sph(p[0],gy+.34f,p[1],.62f+(i%2)*.28f,.60f,.63f,.60f,texMoss);sph(p[0]+.95f,gy+.16f,p[1]+.4f,.34f,.55f,.58f,.55f,texMoss)}
         val fcol=arrayOf(floatArrayOf(.95f,.28f,.22f),floatArrayOf(.98f,.85f,.30f),floatArrayOf(.96f,.96f,.90f),floatArrayOf(.72f,.42f,.92f))
-        for(i in 0 until 46){val x=hsh(i,1f)*116f-58f;val z=hsh(i,2f)*104f-52f;if(abs(x)<2.4f)continue;val gy=ground(x,z);val c=fcol[i%4];box(x,gy+.14f,z,.045f,.15f,.045f,.30f,.55f,.24f);sph(x,gy+.31f,z,.115f,c[0],c[1],c[2]);sph(x,gy+.31f,z,.05f,.98f,.88f,.35f,0,.9f)}
-        for(i in 0 until 34){val x=hsh(i,3f)*110f-55f;val z=hsh(i,4f)*98f-49f;val gy=ground(x,z);sph(x,gy+.13f,z,.17f,.26f,.52f,.20f,texGrass);sph(x+.22f,gy+.09f,z+.12f,.12f,.30f,.56f,.24f,texGrass)}
+        for(i in 0 until 46){val x=hsh(i,1f)*116f-58f;val z=hsh(i,2f)*104f-52f;if(abs(x)<2.4f)continue;val gy=ground(x,z);val c=fcol[i%4];val fs=sin(t*1.8f+i*2.2f)*.05f;box(x,gy+.14f,z,.045f,.15f,.045f,.30f,.55f,.24f);sph(x+fs,gy+.31f,z+fs*.6f,.115f,c[0],c[1],c[2]);sph(x+fs,gy+.31f,z+fs*.6f,.05f,.98f,.88f,.35f,0,.9f)}
+        for(i in 0 until 34){val x=hsh(i,3f)*110f-55f;val z=hsh(i,4f)*98f-49f;val gy=ground(x,z);val gs=sin(t*1.5f+i*1.9f)*.06f;sph(x+gs,gy+.13f,z,.17f,.26f,.52f,.20f,texGrass);sph(x+.22f+gs,gy+.09f,z+.12f,.12f,.30f,.56f,.24f,texGrass)}
         for(i in 0 until 9){val x=hsh(i,5f)*100f-50f;val z=hsh(i,6f)*90f-45f;if(abs(x)<2.4f)continue;val gy=ground(x,z);sph(x,gy+.32f,z,.52f,.34f,.62f,.30f,texLeaves);sph(x+.5f,gy+.22f,z+.3f,.36f,.30f,.56f,.27f,texLeaves)}
         if(nightF>.02f)for(i in 0 until 16){val bx=hsh(i,7f)*80f-40f;val bz=hsh(i,8f)*70f-35f;val by=ground(bx,bz)+1.1f+sin(t*1.3f+i*2.1f)*.5f;sph(bx+sin(t*.7f+i)*1.4f,by,bz+cos(t*.6f+i*1.7f)*1.4f,.06f,1f,.93f,.55f,0,1f,nightF)}
         val birdA=1f-nightF*.85f
